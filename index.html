@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Budget Maison</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Budget">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#f2f5f3">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icone-180.png">
+<link rel="icon" type="image/png" href="icone-192.png">
+<style>
+  :root {
+    --fond: #f2f5f3;
+    --verre: rgba(255,255,255,.58);
+    --verre-fort: rgba(255,255,255,.78);
+    --verre-bord: rgba(255,255,255,.75);
+    --flou: blur(24px) saturate(170%);
+    --texte: #27322e;
+    --discret: #8b9590;
+    --fait: #b6bfbb;
+    --trait: rgba(39,50,46,.07);
+    --bord: rgba(39,50,46,.09);
+    --accent: #3f8c75;
+    --accent-pastel: #a9d7c6;
+    --accent-doux: rgba(169,215,198,.32);
+    --rentree: #3b8f66;
+    --alerte: #cf5a50;
+    --ombre: 0 10px 32px rgba(52,78,68,.07), 0 1px 2px rgba(52,78,68,.04), inset 0 1px 0 rgba(255,255,255,.9);
+    --rayon: 22px;
+    color-scheme: light;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; }
+  html { overscroll-behavior-y: none; background: var(--fond); }
+  body {
+    background: transparent; color: var(--texte);
+    font: 16px/1.45 -apple-system, BlinkMacSystemFont, system-ui, "Segoe UI", Roboto, sans-serif;
+    -webkit-text-size-adjust: 100%; -webkit-font-smoothing: antialiased;
+    padding-bottom: calc(112px + env(safe-area-inset-bottom));
+  }
+  /* Fond pastel diffus, que les surfaces en verre laissent deviner */
+  body::before {
+    content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+    background:
+      radial-gradient(60% 45% at 10% 0%, rgba(178,224,206,.55), transparent 70%),
+      radial-gradient(55% 40% at 100% 18%, rgba(206,222,244,.55), transparent 70%),
+      radial-gradient(60% 45% at 85% 100%, rgba(242,222,206,.45), transparent 70%),
+      radial-gradient(50% 40% at 0% 80%, rgba(226,214,240,.40), transparent 70%),
+      var(--fond);
+  }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  button { cursor: pointer; touch-action: manipulation; -webkit-user-select: none; user-select: none; }
+  .corps:active, .ajouter:active, .rond:active, .lien:active, .puce:active, .bouton:active,
+  .virement:active, nav.onglets button:active { opacity: .55; }
+  .page {
+    max-width: 640px; margin: 0 auto;
+    padding: 0 max(18px, env(safe-area-inset-right)) 0 max(18px, env(safe-area-inset-left));
+  }
+
+  /* Surfaces en verre */
+  .tuile, .liste, .carte, .rond, .puce, nav.onglets, dialog {
+    background: var(--verre);
+    -webkit-backdrop-filter: var(--flou); backdrop-filter: var(--flou);
+    border: 1px solid var(--verre-bord);
+    box-shadow: var(--ombre);
+  }
+
+  /* En-tête : titre centré, façon barre iOS */
+  header.haut {
+    position: sticky; top: 0; z-index: 5; margin: 0 -18px; text-align: center;
+    padding: calc(14px + env(safe-area-inset-top)) 18px 12px;
+    background: rgba(242,245,243,.55);
+    -webkit-backdrop-filter: var(--flou); backdrop-filter: var(--flou);
+  }
+  header.haut h1 { font-size: 17px; font-weight: 600; margin: 0; letter-spacing: -.01em; }
+  #etat {
+    position: absolute; right: 18px; bottom: 14px; font-size: 12px; color: var(--discret);
+    border: 0; background: none; padding: 0;
+  }
+  #etat.reessayer { color: var(--accent); font-weight: 600; }
+
+  /* Barre d'onglets flottante */
+  nav.onglets {
+    position: fixed; z-index: 10;
+    left: max(14px, env(safe-area-inset-left)); right: max(14px, env(safe-area-inset-right));
+    bottom: calc(10px + env(safe-area-inset-bottom));
+    max-width: 560px; margin: 0 auto; padding: 6px; border-radius: 32px;
+    display: flex; justify-content: center; gap: 2px;
+    background: var(--verre-fort);
+    box-shadow: 0 14px 40px rgba(52,78,68,.14), inset 0 1px 0 rgba(255,255,255,.95);
+  }
+  nav.onglets:empty { display: none; }
+  nav.onglets button {
+    flex: 1; max-width: 120px; border: 0; background: none; padding: 7px 2px 6px; border-radius: 26px;
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    font-size: 10.5px; color: var(--discret); min-height: 54px;
+    transition: background .2s, color .2s;
+  }
+  nav.onglets button svg { width: 23px; height: 23px; }
+  nav.onglets button.actif { color: var(--accent); font-weight: 600; background: var(--accent-doux); }
+
+  .barre-mois { display: flex; align-items: center; justify-content: space-between; margin: 10px 0 22px; }
+  .barre-mois h2 { font-size: 26px; font-weight: 700; margin: 0; letter-spacing: -.02em; text-transform: capitalize; }
+  .rond {
+    width: 44px; height: 44px; border-radius: 50%;
+    display: grid; place-items: center; color: var(--accent);
+  }
+  .rond svg { width: 20px; height: 20px; }
+  .rond:disabled { opacity: .3; cursor: default; box-shadow: none; }
+
+  /* Carte des virements à faire, à cocher : verre teinté menthe */
+  .hero {
+    background: linear-gradient(155deg, rgba(196,232,218,.85), rgba(170,214,198,.7));
+    -webkit-backdrop-filter: var(--flou); backdrop-filter: var(--flou);
+    border: 1px solid rgba(255,255,255,.7);
+    color: var(--texte);
+    border-radius: 28px; padding: 20px 22px 8px; margin-bottom: 16px;
+    box-shadow: 0 16px 38px rgba(63,140,117,.16), inset 0 1px 0 rgba(255,255,255,.85);
+  }
+  .hero h3 { margin: 0 0 6px; font-size: 13px; font-weight: 600; color: #4c6b60; letter-spacing: .01em; }
+  .virement {
+    display: flex; align-items: center; gap: 14px; width: 100%; border: 0; background: none; color: inherit;
+    padding: 14px 0; min-height: 60px; text-align: left; border-top: 1px solid rgba(255,255,255,.55);
+  }
+  .hero h3 + .virement { border-top: 0; }
+  .virement .qui { flex: 1; font-size: 17px; font-weight: 500; }
+  .virement b { font-size: 24px; font-weight: 650; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+  .virement .coche { border-color: rgba(63,140,117,.45); background: rgba(255,255,255,.45); }
+  .virement.fait .coche { background: rgba(255,255,255,.7); border-color: rgba(255,255,255,.9); }
+  .virement .coche svg { stroke: #8fb2a5; }
+  .virement.fait .qui, .virement.fait b { opacity: .4; }
+
+  .tuiles { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 32px; }
+  .tuile { border-radius: var(--rayon); padding: 16px 18px; }
+  .tuile span { display: block; font-size: 12px; font-weight: 500; color: var(--discret); }
+  .tuile b { display: block; margin-top: 6px; font-size: 21px; font-weight: 600; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+  .negatif { color: var(--alerte); }
+  button.tuile { text-align: left; width: 100%; }
+
+  /* Mois de prélèvement (fiche d'une charge) */
+  .mois12 { display: grid; grid-template-columns: repeat(6, 1fr); gap: 7px; }
+  .mois12 label { position: relative; }
+  .mois12 input { position: absolute; inset: 0; opacity: 0; margin: 0; }
+  .mois12 span {
+    display: grid; place-items: center; min-height: 42px; border-radius: 12px; border: 1px solid var(--bord);
+    font-size: 13px; font-weight: 600; color: var(--discret); background: rgba(255,255,255,.55);
+  }
+  .mois12 input:checked + span { background: var(--accent-pastel); border-color: var(--accent-pastel); color: #23574a; }
+
+  /* Impôts : rubriques d'un enfant et leurs dépenses */
+  .rubrique + .rubrique { border-top: 1px solid var(--trait); }
+  .rubrique .nom b { font-weight: 600; }
+  .plus-rond {
+    flex: none; width: 28px; height: 28px; border-radius: 50%; background: var(--accent-doux); color: var(--accent);
+    display: grid; place-items: center; font-weight: 600; font-size: 18px; line-height: 1;
+  }
+  .ligne.sous .corps { padding: 7px 18px 7px 32px; min-height: 42px; font-size: 14px; }
+  .ligne.sous .nom, .ligne.sous .montant { color: var(--discret); font-weight: 500; }
+  .ligne.sous::before { display: none; }
+
+  /* Épargne : versements spontanés */
+  .historique { margin-top: 12px; border-top: 1px solid var(--trait); }
+  .hist {
+    display: flex; justify-content: space-between; align-items: center; gap: 10px; width: 100%;
+    border: 0; border-bottom: 1px solid var(--trait); background: none; padding: 11px 0; min-height: 46px; text-align: left;
+  }
+  .hist small { color: var(--discret); font-size: 12px; margin-left: 6px; }
+  .hist b { color: var(--rentree); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .hist:active { opacity: .55; }
+
+  /* Listes groupées façon iOS */
+  section.bloc { margin-bottom: 32px; }
+  section.bloc > h3 {
+    font-size: 12px; margin: 0 0 10px 18px; color: var(--discret); font-weight: 600;
+    text-transform: uppercase; letter-spacing: .06em;
+    display: flex; justify-content: space-between; align-items: baseline; padding-right: 18px;
+  }
+  .liste { border-radius: var(--rayon); overflow: hidden; }
+  .ligne { display: flex; align-items: center; position: relative; }
+  .ligne + .ligne::before {
+    content: ""; position: absolute; top: 0; right: 0; left: 18px; border-top: 1px solid var(--trait);
+  }
+  .liste.pointage .ligne + .ligne::before { left: 58px; }
+  .corps {
+    flex: 1; display: flex; align-items: center; gap: 14px; border: 0; background: none;
+    padding: 15px 18px; min-height: 56px; text-align: left; min-width: 0;
+  }
+  .jour { width: 40px; flex: none; font-size: 13px; color: var(--discret); font-variant-numeric: tabular-nums; }
+  .nom { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .nom small { color: var(--discret); font-size: 12px; margin-left: 6px; }
+  .montant { font-variant-numeric: tabular-nums; white-space: nowrap; font-weight: 600; }
+  .montant.plus { color: var(--rentree); }
+  /* Ligne cochée : nettement grisée */
+  .ligne.passee .nom, .ligne.passee .montant { color: var(--fait); font-weight: 500; }
+  .ligne.passee .nom small { color: var(--fait); }
+  .ligne.inactive .corps { opacity: .45; }
+  .coche {
+    flex: none; width: 26px; height: 26px; border-radius: 50%; border: 1.5px solid rgba(39,50,46,.16);
+    background: rgba(255,255,255,.5);
+    display: grid; place-items: center; transition: background .15s, border-color .15s;
+  }
+  .coche svg { width: 15px; height: 15px; stroke: #fff; opacity: 0; transition: opacity .15s; }
+  .passee .coche { background: #c8d3ce; border-color: #c8d3ce; }
+  .passee .coche svg, .fait .coche svg { opacity: 1; }
+  .ajouter {
+    width: 100%; border: 0; border-top: 1px solid var(--trait); background: none; color: var(--accent);
+    padding: 15px 18px; text-align: left; font-weight: 600; min-height: 52px;
+  }
+  .liste .ajouter:first-child { border-top: 0; }
+  .vide { color: var(--discret); text-align: center; padding: 34px 10px; }
+  .aide { font-size: 13px; color: var(--discret); margin: -4px 0 14px; }
+  .intro { margin: 4px 18px 20px; }
+
+  .carte { border-radius: var(--rayon); padding: 20px; }
+  .credit .entete { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+  .credit .entete h4 { margin: 0; font-size: 17px; font-weight: 600; }
+  .credit .entete b { font-size: 21px; font-weight: 600; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+  .credit .details { color: var(--discret); font-size: 13px; margin-top: 6px; }
+  .credit .actions { display: flex; gap: 18px; margin-top: 8px; align-items: center; justify-content: space-between; }
+  .modifier {
+    width: 44px; height: 44px; margin-right: -10px; border: 0; background: none; color: var(--alerte);
+    display: grid; place-items: center;
+  }
+  .modifier svg { width: 20px; height: 20px; }
+  .modifier:active { opacity: .55; }
+  .lien { border: 0; background: none; color: var(--accent); padding: 8px 0; font-weight: 600; min-height: 44px; }
+  table.echeancier { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 14px; font-variant-numeric: tabular-nums; }
+  table.echeancier th, table.echeancier td { text-align: right; padding: 7px 4px; border-top: 1px solid var(--trait); }
+  table.echeancier th:first-child, table.echeancier td:first-child { text-align: left; text-transform: capitalize; white-space: nowrap; }
+  table.echeancier th { color: var(--discret); font-weight: 600; font-size: 12px; border-top: 0; }
+  table.echeancier tr.resume td { background: var(--accent-doux); font-weight: 600; padding: 9px 6px; border-top: 0; }
+  table.echeancier tr.resume td:first-child { border-radius: 12px 0 0 12px; }
+  table.echeancier tr.resume td:last-child { border-radius: 0 12px 12px 0; }
+  table.echeancier tr.resume small { display: block; font-size: 11px; font-weight: 500; color: var(--discret); }
+  .pile { display: grid; gap: 16px; }
+
+  .annees { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0 22px; }
+  .puce { border-radius: 999px; padding: 8px 18px; min-height: 44px; font-weight: 600; }
+  .puce.actif { background: var(--accent-pastel); border-color: var(--accent-pastel); color: #23574a; }
+
+  /* Écran d'accueil : code familial, messages d'erreur */
+  .accueil { max-width: 380px; margin: 11vh auto 0; text-align: center; }
+  .accueil img { width: 88px; height: 88px; border-radius: 22px; box-shadow: 0 14px 34px rgba(63,140,117,.22); }
+  .accueil h2 { font-size: 24px; font-weight: 700; letter-spacing: -.02em; margin: 20px 0 8px; }
+  .accueil .aide { margin: 0 0 26px; font-size: 15px; }
+  .accueil .champ { text-align: left; }
+  .accueil .champ input { letter-spacing: .04em; }
+  .accueil .bouton { width: 100%; margin-top: 8px; }
+  .accueil .erreur { margin: -4px 0 12px; text-align: left; }
+
+  dialog {
+    border-radius: 28px; padding: 0; width: min(440px, calc(100vw - 32px));
+    max-height: 90vh; max-height: 90dvh; overflow: auto; overscroll-behavior: contain;
+    background: rgba(250,252,251,.82); color: var(--texte);
+    box-shadow: 0 20px 60px rgba(39,50,46,.18), inset 0 1px 0 rgba(255,255,255,.95);
+  }
+  dialog::backdrop {
+    background: rgba(39,50,46,.16);
+    -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  }
+  dialog form { padding: 24px; }
+  dialog h3 { margin: 0 0 16px; font-size: 19px; font-weight: 650; letter-spacing: -.01em; }
+  .champ { display: block; margin-bottom: 16px; }
+  .champ > span { display: block; font-size: 13px; color: var(--discret); margin-bottom: 6px; font-weight: 500; }
+  .champ input:not([type="checkbox"]), .champ select, .champ textarea {
+    width: 100%; padding: 13px 15px; border: 1px solid var(--bord); border-radius: 14px;
+    background: rgba(255,255,255,.65); font-size: 16px; -webkit-appearance: none; appearance: none;
+  }
+  .champ input:focus, .champ select:focus { outline: 2px solid var(--accent-pastel); outline-offset: -1px; }
+  .champ.case { display: flex; align-items: center; gap: 12px; }
+  .champ.case input { width: 22px; height: 22px; accent-color: var(--accent); }
+  .champ.case > span { margin: 0; font-size: 15px; color: var(--texte); }
+  .boutons { display: flex; gap: 10px; margin-top: 20px; align-items: center; }
+  .boutons .espace { flex: 1; }
+  .bouton {
+    border: 1px solid var(--bord); background: rgba(255,255,255,.6); border-radius: 16px;
+    padding: 12px 18px; min-height: 50px; font-weight: 600;
+  }
+  .bouton.principal {
+    background: linear-gradient(180deg, #4f9c84, #3f8c75); border-color: transparent; color: #fff;
+    box-shadow: 0 8px 20px rgba(63,140,117,.25), inset 0 1px 0 rgba(255,255,255,.3);
+  }
+  .bouton.danger { color: var(--alerte); border-color: transparent; background: none; box-shadow: none; padding-left: 0; }
+  .erreur { color: var(--alerte); font-size: 13px; margin: 8px 0 0; }
+  @media (max-width: 600px) {
+    dialog[open] {
+      width: 100%; max-width: 100%; margin: auto 0 0; border-radius: 28px 28px 0 0;
+      animation: monte .24s ease-out;
+    }
+    dialog form { padding: 10px 18px calc(18px + env(safe-area-inset-bottom)); }
+    dialog form::before {
+      content: ""; display: block; width: 36px; height: 5px; border-radius: 3px;
+      background: rgba(39,50,46,.15); margin: 0 auto 16px;
+    }
+    .boutons { flex-wrap: wrap; }
+    .boutons .bouton:not(.danger) { flex: 1; }
+    .boutons .espace { display: none; }
+    .boutons .danger { width: 100%; order: 3; text-align: center; padding-left: 16px; }
+  }
+  @keyframes monte { from { transform: translateY(40px); opacity: .4; } to { transform: none; opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { dialog[open] { animation: none; } nav.onglets button { transition: none; } }
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="haut"><h1>Budget Maison</h1><button id="etat" data-action="rafraichir" disabled></button></header>
+  <main id="vue"></main>
+</div>
+
+<nav class="onglets" id="onglets"></nav>
+
+<dialog id="fenetre"><form method="dialog" id="formulaire" novalidate></form></dialog>
+
+<script>
+// ====== Réglage : adresse du déploiement Apps Script (se termine par /exec) ======
+const API = 'https://script.google.com/macros/s/AKfycbwHX3OS7wLunt-mJYUS-2ADsCMm-HsP71jp-OwBt2jWQfjoAIDtmPFlZQhhppqy0e9y/exec';
+
+// ====== Mémoire de l'iPhone (code familial et dernières données affichées) ======
+
+const CLE_CODE = 'budget-maison:code', CLE_CACHE = 'budget-maison:donnees';
+const secours = {};
+const stock = {
+  lire(k) { try { return localStorage.getItem(k); } catch (e) { return secours[k] || null; } },
+  ecrire(k, v) {
+    try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); }
+    catch (e) { if (v == null) delete secours[k]; else secours[k] = v; }
+  }
+};
+
+// ====== Données et appels au serveur ======
+
+let d = null;                 // dernières données reçues (voir donnees_ dans Code.gs)
+let onglet = 'mois';
+let anneeImpots = null;
+const ouverts = new Set();    // échéanciers dépliés
+
+class CodeRefuse extends Error {}
+
+async function appel(action, args) {
+  const code = stock.lire(CLE_CODE);
+  if (!code) throw new CodeRefuse();
+  let rep;
+  try {
+    rep = await fetch(API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // évite la vérification préalable (CORS)
+      body: JSON.stringify({ code, action, args })
+    });
+  } catch (e) {
+    throw new Error('Pas de connexion internet.');
+  }
+  if (!rep.ok) throw new Error('Le serveur ne répond pas (erreur ' + rep.status + ').');
+  let r;
+  try { r = await rep.json(); }
+  catch (e) { throw new Error('Réponse inattendue du serveur : vérifie que le déploiement est en accès « Tout le monde ».'); }
+  if (!r.ok && r.erreur === 'CODE_INVALIDE') throw new CodeRefuse();
+  if (!r.ok) throw new Error(r.erreur);
+  return r.data;
+}
+
+// Les appels passent l'un après l'autre ; on n'affiche que la réponse du dernier.
+let file = Promise.resolve(), enCours = 0, avis = '', derniereMaj = 0;
+function serveur(action, args) {
+  const ecriture = action !== 'donnees';
+  enCours++; majEtat();
+  file = file.then(() => appel(action, args)).then(res => {
+    enCours--;
+    avis = ''; derniereMaj = Date.now();
+    if (!enCours && res) { d = res; memoriser(); rendre(); }
+    majEtat();
+  }).catch(err => {
+    enCours--;
+    if (err instanceof CodeRefuse) {
+      majEtat();
+      demanderCode(stock.lire(CLE_CODE) ? 'Code refusé. Saisis le code familial actuel.' : '');
+      return;
+    }
+    const msg = err && err.message ? err.message : String(err);
+    if (ecriture) {
+      majEtat();
+      alert('Pas enregistré : ' + msg);
+      if (!enCours) charger(d ? d.mois : '');   // remet l'écran d'accord avec le Sheet
+    } else if (d) {
+      avis = 'Réessayer'; majEtat();              // on garde l'affichage précédent
+    } else {
+      majEtat();
+      afficherMessage('Impossible de charger le budget', msg, true);
+    }
+  });
+}
+function majEtat() {
+  const e = document.getElementById('etat');
+  e.textContent = enCours ? 'Mise à jour…' : avis;
+  e.disabled = !!enCours || !avis;
+  e.classList.toggle('reessayer', !enCours && !!avis);
+}
+function memoriser() {
+  if (d && d.mois === d.moisCourant) stock.ecrire(CLE_CACHE, JSON.stringify(d));
+}
+const charger = mois => serveur('donnees', { mois: mois || '' });
+const sauver = (table, objet) => serveur('enregistrer', { table, objet, mois: d.mois });
+const effacer = (table, id) => serveur('supprimer', { table, id, mois: d.mois });
+
+// ====== Accueil : code familial et messages ======
+
+function demanderCode(message) {
+  stock.ecrire(CLE_CODE, null);
+  stock.ecrire(CLE_CACHE, null);
+  d = null;
+  document.getElementById('onglets').innerHTML = '';
+  document.getElementById('vue').innerHTML = `<form class="accueil" id="form-code" novalidate>
+    <img src="icone-180.png" alt="">
+    <h2>Budget Maison</h2>
+    <p class="aide">Saisis le code familial pour accéder au budget. Il ne te sera demandé qu’une fois sur cet appareil.</p>
+    <label class="champ"><span>Code familial</span>
+      <input name="code" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false"></label>
+    ${message ? `<p class="erreur">${esc(message)}</p>` : ''}
+    <button type="submit" class="bouton principal">Accéder au budget</button>
+  </form>`;
+}
+
+function afficherMessage(titre, texte, reessayer) {
+  document.getElementById('onglets').innerHTML = '';
+  document.getElementById('vue').innerHTML = `<div class="accueil">
+    <img src="icone-180.png" alt="">
+    <h2>${esc(titre)}</h2>
+    <p class="aide">${esc(texte)}</p>
+    ${reessayer ? '<button class="bouton principal" data-action="rafraichir">Réessayer</button>' : ''}
+  </div>`;
+}
+
+document.addEventListener('submit', e => {
+  if (e.target.id !== 'form-code') return;
+  e.preventDefault();
+  const code = e.target.elements.code.value.trim();
+  if (!code) return;
+  stock.ecrire(CLE_CODE, code);
+  document.getElementById('vue').innerHTML = '<p class="vide">Vérification du code…</p>';
+  charger();
+});
+
+// ====== Calculs ======
+
+const r2 = x => Math.round((x + Number.EPSILON) * 100) / 100;
+const somme = liste => r2(liste.reduce((s, l) => s + (Number(l.montant) || 0), 0));
+function arrondiSup(x, pas) {
+  x = r2(x);
+  return pas > 0 ? Math.ceil(x / pas - 1e-9) * pas : x;
+}
+
+/**
+ * Part de chacun = (charges communes, crédit auto compris − rentrées communes comme la CAF)
+ * ÷ nombre de personnes, arrondie à la centaine au-dessus (pour faire un peu d'épargne).
+ * Virement de chacun = sa part − les charges communes qu'il paie déjà depuis son compte
+ * (crédit auto pour Raph), arrondi aussi. Un montant saisi à la main dans le Sheet l'emporte.
+ */
+function calculerMois(lignes, personnes, arrondi) {
+  const charges = lignes.filter(l => l.type === 'Charge');
+  const rentrees = lignes.filter(l => l.type === 'Rentrée');
+  const communes = somme(charges.filter(l => l.partagee));
+  const aides = somme(rentrees.filter(l => l.partagee));
+  const besoin = Math.max(0, r2(communes - aides));
+  const part = personnes.length ? arrondiSup(besoin / personnes.length, arrondi) : 0;
+  const pers = {};
+  personnes.forEach(p => {
+    const directes = somme(charges.filter(l => l.partagee && l.compte === p));
+    const auto = Math.max(0, arrondiSup(part - directes, arrondi));
+    const ligne = lignes.find(l => l.type === 'Virement' && l.compte === p);
+    const virement = ligne && ligne.montant != null ? Number(ligne.montant) : auto;
+    pers[p] = { directes, auto, virement, ligne };
+  });
+  const virements = r2(personnes.reduce((s, p) => s + pers[p].virement, 0));
+  const jointEntrees = r2(virements + somme(rentrees.filter(l => l.compte === 'Joint')));
+  const jointSorties = somme(charges.filter(l => l.compte === 'Joint'));
+  const resteAPrelever = r2(somme(charges.filter(l => l.compte === 'Joint' && !l.passee))
+    - somme(rentrees.filter(l => l.compte === 'Joint' && !l.passee)));
+  return { communes, aides, besoin, part, pers, joint: { fin: r2(jointEntrees - jointSorties), resteAPrelever } };
+}
+
+function moisEntre(a, b) {
+  const [ya, ma] = a.split('-').map(Number), [yb, mb] = b.split('-').map(Number);
+  return (yb - ya) * 12 + (mb - ma);
+}
+function ajouterMois(m, n) {
+  const [y, mo] = m.split('-').map(Number);
+  const t = y * 12 + (mo - 1) + n;
+  return Math.floor(t / 12) + '-' + String(t % 12 + 1).padStart(2, '0');
+}
+
+/** Restant dû aujourd'hui et échéances à venir (une par mois, la dernière ajustée). */
+function projeterCredit(c, courant) {
+  const m = Number(c.mensualite) || 0;
+  const depart = c.au || courant;
+  const ecoule = Math.max(0, moisEntre(depart, courant));
+  let reste = Math.max(0, r2((Number(c.restant) || 0) - m * ecoule));
+  const aujourdhui = reste;
+  let mois = ecoule > 0 ? courant : depart;
+  const echeances = [];
+  while (m > 0 && reste > 0 && echeances.length < 600) {
+    mois = ajouterMois(mois, 1);
+    const paye = Math.min(m, reste);
+    reste = r2(reste - paye);
+    echeances.push({ mois, paye, reste });
+  }
+  return { aujourdhui, echeances, fin: echeances.length ? echeances[echeances.length - 1].mois : null };
+}
+
+const versementsDe = e => (d.versements || []).filter(v => v.epargne === e.id)
+  .sort((a, b) => String(b.date).localeCompare(String(a.date)));
+
+/** Livret : versement mensuel × nombre de mois depuis l'ouverture (mois d'ouverture et mois en cours compris)
+ *  + versement initial éventuel + versements ajoutés. */
+function partsEpargne(e, courant) {
+  const mensuel = r2((Number(e.solde) || 0) + (Number(e.versement) || 0) * Math.max(0, moisEntre(e.au || courant, courant) + 1));
+  const ajoute = somme(versementsDe(e));
+  return { mensuel, ajoute, total: r2(mensuel + ajoute) };
+}
+
+// ====== Affichage ======
+
+const euros = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' });
+const eur = x => euros.format(x || 0);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const nomMois = m => { const [y, mo] = m.split('-').map(Number); return new Date(y, mo - 1, 1).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }); };
+const nomCompte = c => c === 'Joint' ? 'Compte joint' : c;
+const dateCourte = iso => new Date(iso + 'T12:00').toLocaleDateString('fr-FR');
+const aujourdhuiIso = () => { const t = new Date(); return t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0'); };
+const MOIS_COURTS = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+const moisListe = texte => String(texte || '').split(/[;, ]+/).map(Number).filter(n => n >= 1 && n <= 12);
+const RUBRIQUES_IMPOTS = ['Crèche', 'Périscolaire', 'Cantine'];
+const comptes = () => ['Joint'].concat(d.personnes);
+const parJour = (a, b) => (a.jour == null ? 99 : a.jour) - (b.jour == null ? 99 : b.jour) || (a.ordre || 0) - (b.ordre || 0) || String(a.intitule).localeCompare(b.intitule);
+
+const ICONES = {
+  mois: '<path d="M4 6h16v14H4zM4 10h16M9 3v4M15 3v4"/>',
+  charges: '<path d="M5 6h14M5 12h14M5 18h9"/>',
+  credits: '<path d="M3 7h18v10H3zM3 11h18M7 15h3"/>',
+  epargne: '<path d="M12 3v18M7 8c0-2 2-3 5-3s5 1 5 3-2 3-5 3.5S7 13 7 15s2 3 5 3 5-1 5-3"/>',
+  impots: '<path d="M7 3h7l4 4v14H7zM14 3v4h4M10 12h5M10 16h5"/>',
+  gauche: '<path d="M15 6l-6 6 6 6"/>',
+  droite: '<path d="M9 6l6 6-6 6"/>',
+  coche: '<path d="M5 12l4 4 10-10"/>',
+  crayon: '<path d="M4 20h4L19 9l-4-4L4 16v4zM14 6l4 4"/>'
+};
+const icone = (n, style) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${style || 1.8}" stroke-linecap="round" stroke-linejoin="round">${ICONES[n]}</svg>`;
+
+const ONGLETS = [['mois', 'Mois'], ['charges', 'Charges fixes'], ['credits', 'Crédits'], ['epargne', 'Épargne'], ['impots', 'Impôts']];
+
+function rendre() {
+  if (!d) return;
+  document.getElementById('onglets').innerHTML = ONGLETS.map(([k, t]) =>
+    `<button data-action="onglet" data-k="${k}" class="${k === onglet ? 'actif' : ''}">${icone(k)}<span>${t}</span></button>`).join('');
+  const vues = { mois: vueMois, charges: vueCharges, credits: vueCredits, epargne: vueEpargne, impots: vueImpots };
+  document.getElementById('vue').innerHTML = vues[onglet]();
+}
+
+/** Une ligne de liste. opts : pointer (toucher = cocher), jour (afficher le jour), action, nom, montant, inactive. */
+function ligneHtml(l, opts) {
+  opts = opts || {};
+  const plus = l.type === 'Rentrée';
+  const montant = opts.montant != null ? opts.montant : l.montant;
+  const etiquettes = [];
+  if (l.type === 'Charge' && l.partagee && l.compte !== 'Joint') etiquettes.push('commune');
+  if (opts.inactive) etiquettes.push('arrêtée');
+  const recurrence = opts.recurrence ? moisListe(l.recurrence) : [];
+  if (recurrence.length && recurrence.length < 12) etiquettes.push(recurrence.map(n => MOIS_COURTS[n - 1]).join(' '));
+  return `<div class="ligne ${opts.pointer && l.passee ? 'passee' : ''} ${opts.inactive ? 'inactive' : ''}">
+    <button class="corps" data-action="${opts.pointer ? 'pointer' : opts.action}" data-id="${l.id}"${opts.pointer ? ` aria-pressed="${!!l.passee}"` : ''}>
+      ${opts.pointer ? `<span class="coche">${icone('coche', 3)}</span>` : ''}
+      ${opts.jour ? `<span class="jour">${l.jour != null ? 'le ' + l.jour : '—'}</span>` : ''}
+      <span class="nom">${esc(opts.nom || l.intitule)}${etiquettes.map(e => `<small>${e}</small>`).join('')}</span>
+      <span class="montant ${plus ? 'plus' : ''}">${plus ? '+' : '−'}${eur(montant)}</span>
+    </button>
+  </div>`;
+}
+
+const rentreesDabord = (a, b) => (a.type === 'Rentrée' ? 0 : 1) - (b.type === 'Rentrée' ? 0 : 1) || parJour(a, b);
+const avecOrdre = l => Object.assign({ ordre: (d.charges.find(x => x.id === l.charge) || {}).ordre }, l);
+const bloc = (titre, contenu, classe) =>
+  `<section class="bloc"><h3>${esc(titre)}</h3><div class="liste ${classe || ''}">${contenu}</div></section>`;
+
+/** Onglet Mois : un reporting à pointer, aucune modification ici (les dates restent dans le Sheet). */
+function vueMois() {
+  const courant = d.moisCourant, m = d.mois;
+  const premier = d.moisAvecDonnees[0] || courant;
+  const barre = `<div class="barre-mois">
+    <button class="rond" data-action="mois" data-m="${ajouterMois(m, -1)}" ${m <= premier ? 'disabled' : ''} aria-label="Mois précédent">${icone('gauche', 2.4)}</button>
+    <h2>${nomMois(m)}</h2>
+    <button class="rond" data-action="mois" data-m="${ajouterMois(m, 1)}" ${moisEntre(courant, m) >= 12 ? 'disabled' : ''} aria-label="Mois suivant">${icone('droite', 2.4)}</button>
+  </div>`;
+  if (!d.lignes.length) return barre + '<p class="vide">Rien pour ce mois : l’appli n’existait pas encore.</p>';
+
+  const c = calculerMois(d.lignes, d.personnes, d.arrondi);
+  const avecVirement = d.personnes.filter(p => c.pers[p].ligne);
+  const hero = `<div class="hero"><h3>À virer sur le compte joint</h3>
+    ${avecVirement.map(p => {
+      const v = c.pers[p];
+      return `<button class="virement ${v.ligne.passee ? 'fait' : ''}" data-action="pointer" data-id="${v.ligne.id}" aria-pressed="${!!v.ligne.passee}">
+        <span class="coche">${icone('coche', 3)}</span><span class="qui">${esc(p)}</span><b>${eur(v.virement)}</b></button>`;
+    }).join('')}
+  </div>`;
+  const tuiles = `<div class="tuiles">
+    <div class="tuile"><span>Reste à prélever</span><b>${eur(c.joint.resteAPrelever)}</b></div>
+    <div class="tuile"><span>Reste en fin de mois</span><b class="${c.joint.fin < 0 ? 'negatif' : ''}">${eur(c.joint.fin)}</b></div>
+  </div>`;
+
+  // Compte joint : virements, rentrées, puis charges dans l'ordre des prélèvements
+  const joint = avecVirement.map(p => ligneHtml(Object.assign({}, c.pers[p].ligne, { type: 'Rentrée' }),
+    { pointer: true, nom: 'Virement de ' + p, montant: c.pers[p].virement }))
+    .concat(d.lignes.filter(l => l.compte === 'Joint' && l.type !== 'Virement').map(avecOrdre).sort(rentreesDabord)
+      .map(l => ligneHtml(l, { pointer: true })));
+  let blocs = bloc('Compte joint', joint.join(''), 'pointage');
+
+  // Comptes perso : seulement ce qui est payé depuis ce compte (ni salaire, ni virement)
+  d.personnes.forEach(p => {
+    const lignes = d.lignes.filter(l => l.compte === p && l.type === 'Charge').map(avecOrdre).sort(parJour);
+    if (lignes.length) blocs += bloc(p, lignes.map(l => ligneHtml(l, { pointer: true })).join(''), 'pointage');
+  });
+  return barre + hero + tuiles + blocs;
+}
+
+function vueCharges() {
+  const actives = d.charges.filter(c => c.active), arretees = d.charges.filter(c => !c.active);
+  // Salaires en haut, dans une bulle par personne (toucher = modifier)
+  const salaires = `<div class="tuiles">${d.personnes.map(p => {
+    const s = actives.filter(c => c.compte === p && c.type === 'Rentrée');
+    return `<button class="tuile" data-action="${s.length ? 'charge' : 'ajouter-salaire'}" data-id="${s.length ? s[0].id : ''}" data-compte="${esc(p)}">
+      <span>Salaire ${esc(p)}</span><b>${s.length ? eur(somme(s)) : '—'}</b></button>`;
+  }).join('')}</div>`;
+  const blocs = comptes().map(compte => {
+    const liste = actives.filter(c => c.compte === compte && (compte === 'Joint' || c.type !== 'Rentrée')).sort(rentreesDabord);
+    if (compte !== 'Joint' && !liste.length) return '';
+    return bloc(nomCompte(compte), liste.map(c => ligneHtml(c, { action: 'charge', jour: compte === 'Joint', recurrence: true })).join('')
+      + `<button class="ajouter" data-action="ajouter-charge" data-compte="${esc(compte)}">+ Ajouter</button>`);
+  }).join('');
+  const fin = arretees.length ? bloc('Arrêtées', arretees.sort(parJour)
+    .map(c => ligneHtml(c, { action: 'charge', inactive: true })).join('')) : '';
+  return salaires + blocs + fin;
+}
+
+function vueCredits() {
+  const cartes = d.credits.map(c => {
+    const p = projeterCredit(c, d.moisCourant);
+    const ouvert = ouverts.has(c.id);
+    return `<div class="carte credit">
+      <div class="entete"><h4>${esc(c.nom)}</h4><b>${eur(p.aujourdhui)}</b></div>
+      <div class="details">${p.aujourdhui > 0
+        ? `${eur(c.mensualite)} par mois · ${p.echeances.length} échéance${p.echeances.length > 1 ? 's' : ''} · fini en ${p.fin ? nomMois(p.fin) : '—'}`
+        : 'Remboursé'}${c.note ? ' · ' + esc(c.note) : ''}</div>
+      <div class="actions">
+        <button class="lien" data-action="echeancier" data-id="${c.id}">${ouvert ? 'Masquer' : 'Voir'} l’échéancier</button>
+        <button class="modifier" data-action="credit" data-id="${c.id}" aria-label="Modifier">${icone('crayon', 2)}</button>
+      </div>
+      ${ouvert ? `<table class="echeancier"><tr><th>Mois</th><th>Échéance</th><th>Reste dû</th></tr>
+        <tr class="resume"><td><small>Début</small>${c.debut ? nomMois(c.debut) : '—'}</td>
+          <td><small>Payé à ce jour</small>${c.initial != null ? eur(r2(c.initial - p.aujourdhui)) : '—'}</td>
+          <td><small>Reste dû</small>${eur(p.aujourdhui)}</td></tr>
+        ${p.echeances.map(e => `<tr><td>${nomMois(e.mois)}</td><td>${eur(e.paye)}</td><td>${eur(e.reste)}</td></tr>`).join('')}</table>` : ''}
+    </div>`;
+  }).join('');
+  return `<div class="pile">${cartes}<div class="liste"><button class="ajouter" data-action="credit">+ Ajouter un crédit</button></div></div>`;
+}
+
+function vueEpargne() {
+  return `<div class="pile">${d.epargne.map(e => {
+    const vs = versementsDe(e), s = partsEpargne(e, d.moisCourant);
+    return `<div class="carte credit">
+      <div class="entete"><h4>${esc(e.nom)}</h4><b>${eur(s.total)}</b></div>
+      <div class="details">${eur(s.mensuel)} depuis ${e.au ? nomMois(e.au) : '—'} (${eur(e.versement)} par mois)${s.ajoute ? ' + ' + eur(s.ajoute) + ' de versements ajoutés' : ''}</div>
+      ${vs.length ? `<div class="historique">${vs.map(v => `<button class="hist" data-action="versement" data-id="${v.id}">
+        <span>${v.date ? dateCourte(v.date) : 'Sans date'}${v.note ? `<small>${esc(v.note)}</small>` : ''}</span><b>+${eur(v.montant)}</b></button>`).join('')}</div>` : ''}
+      <div class="actions"><button class="lien" data-action="ajouter-versement" data-epargne="${e.id}">+ Ajouter un versement</button></div>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+function vueImpots() {
+  if (!anneeImpots) anneeImpots = Number(d.moisCourant.slice(0, 4));
+  const annees = [...new Set(d.impots.map(i => i.annee).concat(d.fraisKm.map(k => k.annee))
+    .concat([Number(d.moisCourant.slice(0, 4)), anneeImpots]).filter(Boolean))].sort();
+  const puces = `<div class="annees">${annees.map(a => `<button class="puce ${a === anneeImpots ? 'actif' : ''}" data-action="annee" data-a="${a}">${a}</button>`).join('')}
+    <button class="puce" data-action="annee-plus" aria-label="Année suivante">+</button></div>`;
+  const lignes = d.impots.filter(i => i.annee === anneeImpots);
+  const enfants = [...new Set(d.enfants.concat(lignes.map(i => i.pour).filter(Boolean)))];
+  const blocs = enfants.map(enfant => {
+    const siens = lignes.filter(i => i.pour === enfant);
+    const rubriques = [...new Set(RUBRIQUES_IMPOTS.concat(siens.map(i => i.rubrique)))];
+    return bloc(enfant, rubriques.map(r => {
+      const entrees = siens.filter(i => i.rubrique === r);
+      return `<div class="rubrique">
+        <div class="ligne"><button class="corps" data-action="impot-ajout" data-pour="${esc(enfant)}" data-rubrique="${esc(r)}">
+          <span class="nom"><b>${esc(r)}</b></span><span class="montant">${eur(somme(entrees))}</span><span class="plus-rond">+</span></button></div>
+        ${entrees.map(i => `<div class="ligne sous"><button class="corps" data-action="impot" data-id="${i.id}">
+          <span class="nom">${i.date ? dateCourte(i.date) : 'Sans date'}${i.note ? `<small>${esc(i.note)}</small>` : ''}</span>
+          <span class="montant">${eur(i.montant)}</span></button></div>`).join('')}
+      </div>`;
+    }).join(''));
+  }).join('');
+  const km = d.fraisKm.filter(k => k.annee === anneeImpots);
+  const blocKm = bloc('Frais réels (kilomètres)', km.map(k => `<div class="ligne"><button class="corps" data-action="km" data-id="${k.id}">
+      <span class="nom">${esc(k.personne)}<small>${k.kmJour || 0} km/jour × ${k.jours != null ? k.jours : '?'} jours</small></span>
+      <span class="montant">${k.jours != null ? ((k.kmJour || 0) * k.jours).toLocaleString('fr-FR') + ' km' : '—'}</span></button></div>`).join('')
+    + `<button class="ajouter" data-action="km">+ Ajouter une personne</button>`);
+  return puces + blocs + blocKm;
+}
+
+// ====== Fenêtre de saisie ======
+
+const fenetre = document.getElementById('fenetre');
+const formulaire = document.getElementById('formulaire');
+let fenetreCourante = null;
+
+/** champs : [{ k, label, type: texte|montant|nombre|mois|date|case|choix|liste, valeur, options, aide, vide }] */
+function ouvrir(def) {
+  fenetreCourante = def;
+  formulaire.innerHTML = `<h3>${esc(def.titre)}</h3>
+    ${def.texte ? `<p class="aide" style="margin:0 0 12px">${esc(def.texte)}</p>` : ''}
+    ${def.champs.map(champHtml).join('')}
+    <p class="erreur" id="erreur" hidden></p>
+    <div class="boutons">
+      ${def.supprimer ? `<button type="button" class="bouton danger" data-action="f-supprimer">${esc(def.libelleSupprimer || 'Supprimer')}</button>` : ''}
+      <span class="espace"></span>
+      <button type="button" class="bouton" data-action="f-annuler">Annuler</button>
+      <button type="submit" class="bouton principal">Enregistrer</button>
+    </div>`;
+  fenetre.showModal();
+  const premier = formulaire.querySelector('input:not([type="checkbox"]), select');
+  if (premier && !matchMedia('(pointer: coarse)').matches) premier.focus();
+}
+
+function champHtml(c) {
+  const v = c.valeur == null ? '' : c.valeur;
+  const nom = `name="${c.k}"`;
+  let entree;
+  if (c.type === 'case') {
+    return `<label class="champ case"><input type="checkbox" ${nom} ${v ? 'checked' : ''}><span>${esc(c.label)}</span></label>${c.aide ? `<p class="aide">${esc(c.aide)}</p>` : ''}`;
+  }
+  if (c.type === 'mois12') {
+    const choisis = moisListe(v), tous = !choisis.length;
+    return `<div class="champ"><span>${esc(c.label)}</span><div class="mois12">${MOIS_COURTS.map((m, i) =>
+      `<label><input type="checkbox" name="${c.k}" value="${i + 1}" ${tous || choisis.indexOf(i + 1) >= 0 ? 'checked' : ''}><span>${m}</span></label>`).join('')}</div></div>`;
+  }
+  if (c.type === 'choix') {
+    entree = `<select ${nom}>${c.options.map(o => `<option value="${esc(o[0])}" ${String(o[0]) === String(v) ? 'selected' : ''}>${esc(o[1])}</option>`).join('')}</select>`;
+  } else if (c.type === 'montant') {
+    entree = `<input ${nom} inputmode="decimal" autocomplete="off" value="${v === '' ? '' : String(v).replace('.', ',')}" placeholder="${esc(c.vide || '0,00')}">`;
+  } else if (c.type === 'nombre') {
+    entree = `<input ${nom} inputmode="numeric" autocomplete="off" value="${esc(v)}" placeholder="${esc(c.vide || '')}">`;
+  } else if (c.type === 'mois') {
+    entree = `<input ${nom} type="month" value="${esc(v)}">`;
+  } else if (c.type === 'date') {
+    entree = `<input ${nom} type="date" value="${esc(v)}">`;
+  } else if (c.type === 'liste') {
+    entree = `<input ${nom} list="l-${c.k}" autocomplete="off" value="${esc(v)}"><datalist id="l-${c.k}">${c.options.map(o => `<option value="${esc(o)}">`).join('')}</datalist>`;
+  } else {
+    entree = `<input ${nom} autocomplete="off" value="${esc(v)}">`;
+  }
+  return `<label class="champ"><span>${esc(c.label)}</span>${entree}</label>${c.aide ? `<p class="aide">${esc(c.aide)}</p>` : ''}`;
+}
+
+function lireNombre(s) {
+  s = String(s || '').replace(/\s|€/g, '').replace(',', '.');
+  if (s === '') return null;
+  const x = Number(s);
+  return isFinite(x) ? x : NaN;
+}
+
+formulaire.addEventListener('submit', e => {
+  e.preventDefault();
+  const def = fenetreCourante, valeurs = {};
+  for (const c of def.champs) {
+    const el = formulaire.elements[c.k];
+    if (c.type === 'mois12') {
+      const coches = [...formulaire.querySelectorAll(`input[name="${c.k}"]:checked`)].map(x => Number(x.value));
+      if (!coches.length) return erreur('Choisis au moins un mois.');
+      valeurs[c.k] = coches.length === 12 ? '' : coches.join(';');
+    } else if (c.type === 'case') valeurs[c.k] = el.checked;
+    else if (c.type === 'montant' || c.type === 'nombre') {
+      const x = lireNombre(el.value);
+      if (Number.isNaN(x)) return erreur(`« ${c.label} » : nombre attendu.`);
+      if (x == null && c.obligatoire) return erreur(`« ${c.label} » est à remplir.`);
+      if (c.k === 'jour' && x != null && (x < 1 || x > 31 || x % 1)) return erreur('Le jour va de 1 à 31.');
+      if (c.k === 'annee' && x != null && (x < 2000 || x > 2099 || x % 1)) return erreur('Année entre 2000 et 2099.');
+      valeurs[c.k] = x;
+    } else {
+      valeurs[c.k] = el.value.trim();
+      if (!valeurs[c.k] && c.obligatoire) return erreur(`« ${c.label} » est à remplir.`);
+    }
+  }
+  fenetre.close();
+  def.valider(valeurs);
+});
+function erreur(t) { const p = document.getElementById('erreur'); p.textContent = t; p.hidden = false; }
+
+// ====== Fenêtres de chaque élément ======
+
+function fenetreCharge(ch, compte, defauts) {
+  defauts = defauts || {};
+  ouvrir({
+    titre: ch ? ch.intitule : 'Nouvelle ligne · ' + nomCompte(compte),
+    champs: [
+      { k: 'intitule', label: 'Intitulé', valeur: ch ? ch.intitule : defauts.intitule || '', obligatoire: true },
+      { k: 'type', label: 'Type', type: 'choix', valeur: ch ? ch.type : defauts.type || 'Charge', options: [['Charge', 'Dépense'], ['Rentrée', 'Rentrée']] },
+      { k: 'montant', label: 'Montant (€)', type: 'montant', valeur: ch ? ch.montant : null, obligatoire: true },
+      { k: 'jour', label: 'Jour du mois', type: 'nombre', valeur: ch ? ch.jour : null, vide: 'non renseigné' },
+      { k: 'recurrence', label: 'Mois de prélèvement', type: 'mois12', valeur: ch ? ch.recurrence : '' },
+      { k: 'partagee', label: 'Commune (comptée dans la part de chacun)', type: 'case', valeur: ch ? ch.partagee : compte === 'Joint',
+        aide: 'Pour une rentrée commune (CAF…) : elle diminue la part de chacun.' },
+      { k: 'active', label: 'Active', type: 'case', valeur: ch ? ch.active : true },
+      { k: 'note', label: 'Note', valeur: ch ? ch.note : '' }
+    ],
+    supprimer: ch && ch.active ? () => effacer('Charges', ch.id) : null,
+    libelleSupprimer: 'Arrêter',
+    valider: v => {
+      const ordre = ch ? ch.ordre : d.charges.reduce((m, x) => Math.max(m, x.ordre || 0), 0) + 1;
+      sauver('Charges', Object.assign({ compte }, ch || {}, v, { ordre }));
+    }
+  });
+}
+
+function fenetreCredit(c) {
+  ouvrir({
+    titre: c ? c.nom : 'Nouveau crédit',
+    champs: [
+      { k: 'nom', label: 'Nom', valeur: c ? c.nom : '', obligatoire: true },
+      { k: 'initial', label: 'Montant emprunté (€)', type: 'montant', valeur: c ? c.initial : null },
+      { k: 'debut', label: 'Date de début', type: 'mois', valeur: c ? c.debut : '' },
+      { k: 'restant', label: 'Restant dû aujourd’hui (€)', type: 'montant', valeur: c ? projeterCredit(c, d.moisCourant).aujourdhui : null, obligatoire: true },
+      { k: 'mensualite', label: 'Mensualité (€)', type: 'montant', valeur: c ? c.mensualite : null, obligatoire: true },
+      { k: 'note', label: 'Note', valeur: c ? c.note : '' }
+    ],
+    texte: 'Restant dû après l’échéance de ' + nomMois(d.moisCourant) + ' ; il baisse ensuite tout seul chaque mois.',
+    supprimer: c ? () => { if (confirm('Supprimer ' + c.nom + ' ?')) effacer('Crédits', c.id); } : null,
+    valider: v => sauver('Crédits', Object.assign({}, c || {}, v, { au: d.moisCourant }))
+  });
+}
+
+function fenetreVersement(v, livret) {
+  const e = d.epargne.find(x => x.id === (v ? v.epargne : livret));
+  ouvrir({
+    titre: 'Versement · ' + (e ? e.nom : ''),
+    champs: [
+      { k: 'montant', label: 'Montant (€)', type: 'montant', valeur: v ? v.montant : null, obligatoire: true },
+      { k: 'date', label: 'Date', type: 'date', valeur: v ? v.date : aujourdhuiIso(), obligatoire: true },
+      { k: 'note', label: 'Note', valeur: v ? v.note : '' }
+    ],
+    supprimer: v ? () => effacer('Versements', v.id) : null,
+    valider: x => sauver('Versements', Object.assign({ epargne: livret }, v || {}, x))
+  });
+}
+
+function fenetreImpot(i, pour, rubrique) {
+  pour = i ? i.pour : pour; rubrique = i ? i.rubrique : rubrique;
+  ouvrir({
+    titre: rubrique + ' · ' + pour + ' · ' + (i ? i.annee : anneeImpots),
+    champs: [
+      { k: 'montant', label: 'Montant (€)', type: 'montant', valeur: i ? i.montant : null, obligatoire: true },
+      { k: 'date', label: 'Date (facultatif)', type: 'date', valeur: i ? i.date : '' },
+      { k: 'note', label: 'Note', valeur: i ? i.note : '' }
+    ],
+    supprimer: i ? () => effacer('Impôts', i.id) : null,
+    valider: v => sauver('Impôts', Object.assign({ annee: anneeImpots, pour, rubrique }, i || {}, v))
+  });
+}
+
+function fenetreKm(k) {
+  ouvrir({
+    titre: k ? 'Kilomètres de ' + k.personne + ' · ' + k.annee : 'Kilomètres ' + anneeImpots,
+    champs: [
+      { k: 'personne', label: 'Personne', type: 'liste', options: d.personnes, valeur: k ? k.personne : '', obligatoire: true },
+      { k: 'kmJour', label: 'Km par jour (aller-retour)', type: 'nombre', valeur: k ? k.kmJour : null },
+      { k: 'jours', label: 'Jours travaillés', type: 'nombre', valeur: k ? k.jours : null }
+    ],
+    supprimer: k ? () => effacer('Frais km', k.id) : null,
+    valider: v => sauver('Frais km', Object.assign({ annee: anneeImpots }, k || {}, v))
+  });
+}
+
+// ====== Clics ======
+
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-action]');
+  if (!b || b.disabled) return;
+  const id = b.dataset.id, trouve = (liste) => liste.find(x => x.id === id);
+  switch (b.dataset.action) {
+    case 'onglet': onglet = b.dataset.k; rendre(); window.scrollTo(0, 0); break;
+    case 'mois': charger(b.dataset.m); break;
+    case 'rafraichir':
+      if (!d) document.getElementById('vue').innerHTML = '<p class="vide">Chargement…</p>';
+      charger(d ? d.mois : '');
+      break;
+    case 'pointer': {
+      const l = trouve(d.lignes);
+      l.passee = !l.passee;
+      rendre();
+      sauver('Lignes', l);
+      break;
+    }
+    case 'charge': fenetreCharge(trouve(d.charges)); break;
+    case 'ajouter-charge': fenetreCharge(null, b.dataset.compte); break;
+    case 'ajouter-salaire': fenetreCharge(null, b.dataset.compte, { type: 'Rentrée', intitule: 'Salaire ' + b.dataset.compte }); break;
+    case 'versement': fenetreVersement(trouve(d.versements), null); break;
+    case 'ajouter-versement': fenetreVersement(null, b.dataset.epargne); break;
+    case 'impot-ajout': fenetreImpot(null, b.dataset.pour, b.dataset.rubrique); break;
+    case 'credit': fenetreCredit(id ? trouve(d.credits) : null); break;
+    case 'echeancier': ouverts.has(id) ? ouverts.delete(id) : ouverts.add(id); rendre(); break;
+    case 'impot': fenetreImpot(trouve(d.impots)); break;
+    case 'km': fenetreKm(id ? trouve(d.fraisKm) : null); break;
+    case 'annee': anneeImpots = Number(b.dataset.a); rendre(); break;
+    case 'annee-plus': anneeImpots = Math.max(anneeImpots, Number(d.moisCourant.slice(0, 4))) + 1; rendre(); break;
+    case 'f-annuler': fenetre.close(); break;
+    case 'f-supprimer': fenetre.close(); fenetreCourante.supprimer(); break;
+  }
+});
+
+// Retour dans l'appli après un moment : on récupère ce que les autres ont pu changer.
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && d && !enCours && !fenetre.open
+      && Date.now() - derniereMaj > 30000) charger(d.mois);
+});
+
+// ====== Démarrage ======
+
+function demarrer() {
+  if (!/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(API)) {
+    afficherMessage('Adresse du serveur manquante',
+      'Colle l’adresse /exec du déploiement Apps Script dans index.html, à la ligne « const API = … ».', false);
+    return;
+  }
+  if (!stock.lire(CLE_CODE)) { demanderCode(''); return; }
+  // Affichage immédiat des dernières données connues, puis mise à jour depuis le Sheet
+  const cache = stock.lire(CLE_CACHE);
+  if (cache) { try { d = JSON.parse(cache); rendre(); } catch (e) { d = null; } }
+  if (!d) document.getElementById('vue').innerHTML = '<p class="vide">Chargement…</p>';
+  charger();
+}
+demarrer();
+</script>
+</body>
+</html>
