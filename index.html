@@ -560,6 +560,10 @@ const moisListe = texte => String(texte || '').split(/[;, ]+/).map(Number).filte
 const RUBRIQUES_IMPOTS = ['Crèche', 'Périscolaire', 'Cantine'];
 const comptes = () => ['Joint'].concat(d.personnes);
 const cloture = m => (d.clotures || []).find(c => c.mois === m) || null;
+/** Lignes affichées (donc à cocher) dans l'onglet Mois : pas les salaires sur les comptes perso. */
+const aPointer = l => l.type === 'Virement' ? d.personnes.indexOf(l.compte) >= 0
+  : l.compte === 'Joint' || (d.personnes.indexOf(l.compte) >= 0 && l.type === 'Charge');
+const toutCoche = () => d.lignes.filter(aPointer).every(l => l.passee);
 const parJour = (a, b) => (a.jour == null ? 99 : a.jour) - (b.jour == null ? 99 : b.jour) || (a.ordre || 0) - (b.ordre || 0) || String(a.intitule).localeCompare(b.intitule);
 
 const ICONES = {
@@ -625,7 +629,9 @@ function vueMois() {
   const ferme = cloture(m);
   const bandeau = ferme ? `<div class="cloture">${icone('cadenas', 1.8)}
     <span>Mois clôturé${ferme.date ? ' le ' + dateCourte(ferme.date) : ''}</span>
-    <button class="lien" data-action="rouvrir">Rouvrir</button></div>` : '';
+    <button class="lien" data-action="rouvrir">Rouvrir</button></div>`
+    : toutCoche() ? `<div class="cloture">${icone('coche', 2)}<span>Tout est coché</span>
+    <button class="lien" data-action="cloturer">Clôturer le mois</button></div>` : '';
   const c = calculerMois(d.lignes, d.personnes, d.arrondi);
   const avecVirement = d.personnes.filter(p => c.pers[p].ligne);
   const hero = `<div class="hero"><h3>À virer sur le compte joint</h3>
@@ -959,9 +965,10 @@ document.addEventListener('click', e => {
       l.passee = !l.passee;
       rendre();
       sauver('Lignes', l);
-      if (l.passee && d.lignes.every(x => x.passee)) proposerCloture(d.mois);
+      if (l.passee && toutCoche()) proposerCloture(d.mois);
       break;
     }
+    case 'cloturer': proposerCloture(d.mois); break;
     case 'rouvrir':
       if (confirm('Rouvrir ' + nomMois(d.mois) + ' ? Il redeviendra modifiable.')) serveur('rouvrir', { mois: d.mois });
       break;
