@@ -9,29 +9,29 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Budget">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="theme-color" content="#f2f5f3">
+<meta name="theme-color" content="#f4f6f5">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icone-180.png">
 <link rel="icon" type="image/png" href="icone-192.png">
 <style>
   :root {
-    --fond: #f2f5f3;
-    --verre: rgba(255,255,255,.58);
-    --verre-fort: rgba(255,255,255,.78);
-    --verre-bord: rgba(255,255,255,.75);
-    --flou: blur(24px) saturate(170%);
-    --texte: #27322e;
-    --discret: #8b9590;
-    --fait: #b6bfbb;
-    --trait: rgba(39,50,46,.07);
-    --bord: rgba(39,50,46,.09);
-    --accent: #3f8c75;
-    --accent-pastel: #a9d7c6;
-    --accent-doux: rgba(169,215,198,.32);
-    --rentree: #3b8f66;
-    --alerte: #cf5a50;
-    --ombre: 0 10px 32px rgba(52,78,68,.07), 0 1px 2px rgba(52,78,68,.04), inset 0 1px 0 rgba(255,255,255,.9);
-    --rayon: 22px;
+    --fond: #f4f6f5;
+    --surface: rgba(255,255,255,.78);
+    --verre: rgba(255,255,255,.62);
+    --flou: blur(20px) saturate(160%);
+    --lisere: rgba(39,50,46,.055);
+    --texte: #2a3431;
+    --discret: #929b97;
+    --fait: #bcc4c0;
+    --trait: rgba(39,50,46,.06);
+    --bord: rgba(39,50,46,.08);
+    --accent: #43907a;
+    --accent-pastel: #b5ddcf;
+    --accent-doux: rgba(181,221,207,.35);
+    --rentree: #44946d;
+    --alerte: #d0665d;
+    --ombre: 0 1px 2px rgba(39,50,46,.03), 0 4px 16px rgba(39,50,46,.035);
+    --rayon: 20px;
     color-scheme: light;
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -39,263 +39,263 @@
   html { overscroll-behavior-y: none; background: var(--fond); }
   body {
     background: transparent; color: var(--texte);
-    font: 16px/1.45 -apple-system, BlinkMacSystemFont, system-ui, "Segoe UI", Roboto, sans-serif;
+    font: 15px/1.45 -apple-system, BlinkMacSystemFont, system-ui, "Segoe UI", Roboto, sans-serif;
     -webkit-text-size-adjust: 100%; -webkit-font-smoothing: antialiased;
-    padding-bottom: calc(112px + env(safe-area-inset-bottom));
+    padding-bottom: calc(100px + env(safe-area-inset-bottom));
   }
-  /* Fond pastel diffus, que les surfaces en verre laissent deviner */
+  /* Fond pastel très diffus */
   body::before {
     content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
     background:
-      radial-gradient(60% 45% at 10% 0%, rgba(178,224,206,.55), transparent 70%),
-      radial-gradient(55% 40% at 100% 18%, rgba(206,222,244,.55), transparent 70%),
-      radial-gradient(60% 45% at 85% 100%, rgba(242,222,206,.45), transparent 70%),
-      radial-gradient(50% 40% at 0% 80%, rgba(226,214,240,.40), transparent 70%),
+      radial-gradient(60% 45% at 8% 0%, rgba(190,230,214,.42), transparent 70%),
+      radial-gradient(55% 40% at 100% 15%, rgba(212,226,246,.40), transparent 70%),
+      radial-gradient(60% 45% at 90% 100%, rgba(244,228,214,.32), transparent 70%),
       var(--fond);
   }
   button, input, select, textarea { font: inherit; color: inherit; }
   button { cursor: pointer; touch-action: manipulation; -webkit-user-select: none; user-select: none; }
-  .corps:active, .ajouter:active, .rond:active, .lien:active, .puce:active, .bouton:active,
-  .virement:active, nav.onglets button:active { opacity: .55; }
+  button:disabled { cursor: default; }
+  .corps:not(:disabled):active, .ajouter:active, .rond:active, .lien:active, .puce:active, .bouton:active,
+  .virement:not(:disabled):active, nav.onglets button:active { opacity: .5; }
   .page {
-    max-width: 640px; margin: 0 auto;
+    max-width: 620px; margin: 0 auto;
     padding: 0 max(18px, env(safe-area-inset-right)) 0 max(18px, env(safe-area-inset-left));
   }
+  svg { stroke-width: 1.6; }
 
-  /* Surfaces en verre */
-  .tuile, .liste, .carte, .rond, .puce, nav.onglets, dialog {
-    background: var(--verre);
-    -webkit-backdrop-filter: var(--flou); backdrop-filter: var(--flou);
-    border: 1px solid var(--verre-bord);
-    box-shadow: var(--ombre);
+  /* Surfaces : blanc léger, liseré fin, ombre à peine visible (le flou est réservé aux barres et aux fenêtres) */
+  .tuile, .liste, .carte, .rond, .puce {
+    background: var(--surface); border: 1px solid var(--lisere); box-shadow: var(--ombre);
   }
 
-  /* En-tête : titre centré, façon barre iOS */
+  /* En-tête en verre */
   header.haut {
     position: sticky; top: 0; z-index: 5; margin: 0 -18px; text-align: center;
-    padding: calc(14px + env(safe-area-inset-top)) 18px 12px;
-    background: rgba(242,245,243,.55);
+    padding: calc(12px + env(safe-area-inset-top)) 18px 10px;
+    background: rgba(244,246,245,.7);
     -webkit-backdrop-filter: var(--flou); backdrop-filter: var(--flou);
   }
-  header.haut h1 { font-size: 17px; font-weight: 600; margin: 0; letter-spacing: -.01em; }
+  header.haut h1 { font-size: 16px; font-weight: 600; margin: 0; letter-spacing: -.01em; }
   #etat {
-    position: absolute; right: 18px; bottom: 14px; font-size: 12px; color: var(--discret);
+    position: absolute; right: 18px; bottom: 12px; font-size: 11.5px; color: var(--discret);
     border: 0; background: none; padding: 0;
   }
   #etat.reessayer { color: var(--accent); font-weight: 600; }
 
-  /* Barre d'onglets flottante */
+  /* Barre d'onglets flottante, fine */
   nav.onglets {
     position: fixed; z-index: 10;
-    left: max(14px, env(safe-area-inset-left)); right: max(14px, env(safe-area-inset-right));
-    bottom: calc(10px + env(safe-area-inset-bottom));
-    max-width: 560px; margin: 0 auto; padding: 6px; border-radius: 32px;
+    left: max(16px, env(safe-area-inset-left)); right: max(16px, env(safe-area-inset-right));
+    bottom: calc(8px + env(safe-area-inset-bottom));
+    max-width: 520px; margin: 0 auto; padding: 4px; border-radius: 28px;
     display: flex; justify-content: center; gap: 2px;
-    background: var(--verre-fort);
-    box-shadow: 0 14px 40px rgba(52,78,68,.14), inset 0 1px 0 rgba(255,255,255,.95);
+    background: var(--verre);
+    -webkit-backdrop-filter: var(--flou); backdrop-filter: var(--flou);
+    border: 1px solid rgba(255,255,255,.7);
+    box-shadow: 0 8px 28px rgba(39,50,46,.09), inset 0 1px 0 rgba(255,255,255,.8);
   }
   nav.onglets:empty { display: none; }
   nav.onglets button {
-    flex: 1; max-width: 120px; border: 0; background: none; padding: 7px 2px 6px; border-radius: 26px;
-    display: flex; flex-direction: column; align-items: center; gap: 2px;
-    font-size: 10.5px; color: var(--discret); min-height: 54px;
+    flex: 1; max-width: 110px; border: 0; background: none; padding: 6px 2px 5px; border-radius: 24px;
+    display: flex; flex-direction: column; align-items: center; gap: 1px;
+    font-size: 10px; color: var(--discret); min-height: 48px;
     transition: background .2s, color .2s;
   }
-  nav.onglets button svg { width: 23px; height: 23px; }
+  nav.onglets button svg { width: 21px; height: 21px; stroke-width: 1.5; }
   nav.onglets button.actif { color: var(--accent); font-weight: 600; background: var(--accent-doux); }
 
-  .barre-mois { display: flex; align-items: center; justify-content: space-between; margin: 10px 0 22px; }
-  .barre-mois h2 { font-size: 26px; font-weight: 700; margin: 0; letter-spacing: -.02em; text-transform: capitalize; }
-  .rond {
-    width: 44px; height: 44px; border-radius: 50%;
-    display: grid; place-items: center; color: var(--accent);
-  }
-  .rond svg { width: 20px; height: 20px; }
-  .rond:disabled { opacity: .3; cursor: default; box-shadow: none; }
+  .barre-mois { display: flex; align-items: center; justify-content: space-between; margin: 8px 0 20px; }
+  .barre-mois h2 { font-size: 22px; font-weight: 600; margin: 0; letter-spacing: -.02em; text-transform: capitalize; }
+  .rond { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; color: var(--accent); }
+  .rond svg { width: 18px; height: 18px; stroke-width: 2; }
+  .rond:disabled { opacity: .3; box-shadow: none; }
 
-  /* Carte des virements à faire, à cocher : verre teinté menthe */
-  .hero {
-    background: linear-gradient(155deg, rgba(196,232,218,.85), rgba(170,214,198,.7));
-    -webkit-backdrop-filter: var(--flou); backdrop-filter: var(--flou);
-    border: 1px solid rgba(255,255,255,.7);
-    color: var(--texte);
-    border-radius: 28px; padding: 20px 22px 8px; margin-bottom: 16px;
-    box-shadow: 0 16px 38px rgba(63,140,117,.16), inset 0 1px 0 rgba(255,255,255,.85);
+  /* Mois clôturé */
+  .cloture {
+    display: flex; align-items: center; gap: 8px; margin: -6px 0 16px; padding: 9px 14px;
+    border-radius: 14px; background: var(--accent-doux); color: #557568; font-size: 13px;
   }
-  .hero h3 { margin: 0 0 6px; font-size: 13px; font-weight: 600; color: #4c6b60; letter-spacing: .01em; }
+  .cloture svg { width: 16px; height: 16px; flex: none; }
+  .cloture span { flex: 1; }
+  .cloture .lien { min-height: 0; padding: 4px 0; font-size: 13px; }
+
+  /* Carte des virements à faire : menthe très clair */
+  .hero {
+    background: linear-gradient(160deg, rgba(220,240,232,.95), rgba(204,232,221,.85));
+    border: 1px solid rgba(255,255,255,.8);
+    color: var(--texte);
+    border-radius: 24px; padding: 16px 20px 6px; margin-bottom: 14px;
+    box-shadow: 0 6px 22px rgba(67,144,122,.08);
+  }
+  .hero h3 { margin: 0 0 2px; font-size: 12px; font-weight: 500; color: #5e7c71; letter-spacing: .01em; }
   .virement {
-    display: flex; align-items: center; gap: 14px; width: 100%; border: 0; background: none; color: inherit;
-    padding: 14px 0; min-height: 60px; text-align: left; border-top: 1px solid rgba(255,255,255,.55);
+    display: flex; align-items: center; gap: 12px; width: 100%; border: 0; background: none; color: inherit;
+    padding: 12px 0; min-height: 54px; text-align: left; border-top: 1px solid rgba(255,255,255,.7);
   }
   .hero h3 + .virement { border-top: 0; }
-  .virement .qui { flex: 1; font-size: 17px; font-weight: 500; }
-  .virement b { font-size: 24px; font-weight: 650; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
-  .virement .coche { border-color: rgba(63,140,117,.45); background: rgba(255,255,255,.45); }
-  .virement.fait .coche { background: rgba(255,255,255,.7); border-color: rgba(255,255,255,.9); }
-  .virement .coche svg { stroke: #8fb2a5; }
-  .virement.fait .qui, .virement.fait b { opacity: .4; }
+  .virement .qui { flex: 1; font-size: 16px; font-weight: 400; }
+  .virement b { font-size: 20px; font-weight: 600; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+  .virement .coche { border-color: rgba(67,144,122,.35); background: rgba(255,255,255,.5); }
+  .virement.fait .coche { background: rgba(255,255,255,.8); border-color: rgba(255,255,255,.9); }
+  .virement .coche svg { stroke: #9dbbb0; }
+  .virement.fait .qui, .virement.fait b { opacity: .38; }
 
-  .tuiles { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 32px; }
-  .tuile { border-radius: var(--rayon); padding: 16px 18px; }
-  .tuile span { display: block; font-size: 12px; font-weight: 500; color: var(--discret); }
-  .tuile b { display: block; margin-top: 6px; font-size: 21px; font-weight: 600; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+  .tuiles { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 28px; }
+  .tuile { border-radius: var(--rayon); padding: 14px 16px; }
+  .tuile span { display: block; font-size: 11.5px; font-weight: 500; color: var(--discret); }
+  .tuile b { display: block; margin-top: 4px; font-size: 18px; font-weight: 600; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
   .negatif { color: var(--alerte); }
   button.tuile { text-align: left; width: 100%; }
 
   /* Mois de prélèvement (fiche d'une charge) */
-  .mois12 { display: grid; grid-template-columns: repeat(6, 1fr); gap: 7px; }
+  .mois12 { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
   .mois12 label { position: relative; }
   .mois12 input { position: absolute; inset: 0; opacity: 0; margin: 0; }
   .mois12 span {
-    display: grid; place-items: center; min-height: 42px; border-radius: 12px; border: 1px solid var(--bord);
-    font-size: 13px; font-weight: 600; color: var(--discret); background: rgba(255,255,255,.55);
+    display: grid; place-items: center; min-height: 38px; border-radius: 11px; border: 1px solid var(--bord);
+    font-size: 12.5px; font-weight: 500; color: var(--discret); background: rgba(255,255,255,.6);
   }
-  .mois12 input:checked + span { background: var(--accent-pastel); border-color: var(--accent-pastel); color: #23574a; }
+  .mois12 input:checked + span { background: var(--accent-pastel); border-color: var(--accent-pastel); color: #2b5e50; }
 
   /* Impôts : rubriques d'un enfant et leurs dépenses */
   .rubrique + .rubrique { border-top: 1px solid var(--trait); }
-  .rubrique .nom b { font-weight: 600; }
+  .rubrique .nom b { font-weight: 500; }
   .plus-rond {
-    flex: none; width: 28px; height: 28px; border-radius: 50%; background: var(--accent-doux); color: var(--accent);
-    display: grid; place-items: center; font-weight: 600; font-size: 18px; line-height: 1;
+    flex: none; width: 24px; height: 24px; border-radius: 50%; background: var(--accent-doux); color: var(--accent);
+    display: grid; place-items: center; font-weight: 500; font-size: 16px; line-height: 1;
   }
-  .ligne.sous .corps { padding: 7px 18px 7px 32px; min-height: 42px; font-size: 14px; }
-  .ligne.sous .nom, .ligne.sous .montant { color: var(--discret); font-weight: 500; }
+  .ligne.sous .corps { padding: 6px 16px 6px 30px; min-height: 40px; font-size: 13.5px; }
+  .ligne.sous .nom, .ligne.sous .montant { color: var(--discret); font-weight: 400; }
   .ligne.sous::before { display: none; }
 
   /* Épargne : versements spontanés */
-  .historique { margin-top: 12px; border-top: 1px solid var(--trait); }
+  .historique { margin-top: 10px; border-top: 1px solid var(--trait); }
   .hist {
     display: flex; justify-content: space-between; align-items: center; gap: 10px; width: 100%;
-    border: 0; border-bottom: 1px solid var(--trait); background: none; padding: 11px 0; min-height: 46px; text-align: left;
+    border: 0; border-bottom: 1px solid var(--trait); background: none; padding: 10px 0; min-height: 44px; text-align: left;
   }
   .hist small { color: var(--discret); font-size: 12px; margin-left: 6px; }
-  .hist b { color: var(--rentree); font-weight: 600; font-variant-numeric: tabular-nums; }
-  .hist:active { opacity: .55; }
+  .hist b { color: var(--rentree); font-weight: 500; font-variant-numeric: tabular-nums; }
+  .hist:active { opacity: .5; }
 
   /* Listes groupées façon iOS */
-  section.bloc { margin-bottom: 32px; }
+  section.bloc { margin-bottom: 28px; }
   section.bloc > h3 {
-    font-size: 12px; margin: 0 0 10px 18px; color: var(--discret); font-weight: 600;
-    text-transform: uppercase; letter-spacing: .06em;
-    display: flex; justify-content: space-between; align-items: baseline; padding-right: 18px;
+    font-size: 11px; margin: 0 0 8px 16px; color: var(--discret); font-weight: 500;
+    text-transform: uppercase; letter-spacing: .07em;
+    display: flex; justify-content: space-between; align-items: baseline; padding-right: 16px;
   }
   .liste { border-radius: var(--rayon); overflow: hidden; }
   .ligne { display: flex; align-items: center; position: relative; }
   .ligne + .ligne::before {
-    content: ""; position: absolute; top: 0; right: 0; left: 18px; border-top: 1px solid var(--trait);
+    content: ""; position: absolute; top: 0; right: 0; left: 16px; border-top: 1px solid var(--trait);
   }
-  .liste.pointage .ligne + .ligne::before { left: 58px; }
+  .liste.pointage .ligne + .ligne::before { left: 50px; }
   .corps {
-    flex: 1; display: flex; align-items: center; gap: 14px; border: 0; background: none;
-    padding: 15px 18px; min-height: 56px; text-align: left; min-width: 0;
+    flex: 1; display: flex; align-items: center; gap: 12px; border: 0; background: none;
+    padding: 13px 16px; min-height: 50px; text-align: left; min-width: 0;
   }
-  .jour { width: 40px; flex: none; font-size: 13px; color: var(--discret); font-variant-numeric: tabular-nums; }
-  .nom { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .nom small { color: var(--discret); font-size: 12px; margin-left: 6px; }
-  .montant { font-variant-numeric: tabular-nums; white-space: nowrap; font-weight: 600; }
+  .jour { width: 38px; flex: none; font-size: 12.5px; color: var(--discret); font-variant-numeric: tabular-nums; }
+  .nom { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 400; }
+  .nom small { color: var(--discret); font-size: 11.5px; margin-left: 6px; }
+  .montant { font-variant-numeric: tabular-nums; white-space: nowrap; font-weight: 500; }
   .montant.plus { color: var(--rentree); }
   /* Ligne cochée : nettement grisée */
-  .ligne.passee .nom, .ligne.passee .montant { color: var(--fait); font-weight: 500; }
+  .ligne.passee .nom, .ligne.passee .montant, .ligne.passee .jour { color: var(--fait); }
   .ligne.passee .nom small { color: var(--fait); }
   .ligne.inactive .corps { opacity: .45; }
   .coche {
-    flex: none; width: 26px; height: 26px; border-radius: 50%; border: 1.5px solid rgba(39,50,46,.16);
-    background: rgba(255,255,255,.5);
+    flex: none; width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid rgba(39,50,46,.16);
+    background: rgba(255,255,255,.6);
     display: grid; place-items: center; transition: background .15s, border-color .15s;
   }
-  .coche svg { width: 15px; height: 15px; stroke: #fff; opacity: 0; transition: opacity .15s; }
-  .passee .coche { background: #c8d3ce; border-color: #c8d3ce; }
+  .coche svg { width: 13px; height: 13px; stroke: #fff; opacity: 0; transition: opacity .15s; }
+  .passee .coche { background: #d0d8d4; border-color: #d0d8d4; }
   .passee .coche svg, .fait .coche svg { opacity: 1; }
   .ajouter {
     width: 100%; border: 0; border-top: 1px solid var(--trait); background: none; color: var(--accent);
-    padding: 15px 18px; text-align: left; font-weight: 600; min-height: 52px;
+    padding: 13px 16px; text-align: left; font-weight: 500; min-height: 48px;
   }
   .liste .ajouter:first-child { border-top: 0; }
-  .vide { color: var(--discret); text-align: center; padding: 34px 10px; }
-  .aide { font-size: 13px; color: var(--discret); margin: -4px 0 14px; }
-  .intro { margin: 4px 18px 20px; }
+  .vide { color: var(--discret); text-align: center; padding: 30px 10px; }
+  .aide { font-size: 12.5px; color: var(--discret); margin: -4px 0 12px; }
+  .intro { margin: 4px 16px 18px; }
 
-  .carte { border-radius: var(--rayon); padding: 20px; }
+  .carte { border-radius: var(--rayon); padding: 18px; }
   .credit .entete { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
-  .credit .entete h4 { margin: 0; font-size: 17px; font-weight: 600; }
-  .credit .entete b { font-size: 21px; font-weight: 600; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
-  .credit .details { color: var(--discret); font-size: 13px; margin-top: 6px; }
-  .credit .actions { display: flex; gap: 18px; margin-top: 8px; align-items: center; justify-content: space-between; }
+  .credit .entete h4 { margin: 0; font-size: 16px; font-weight: 500; }
+  .credit .entete b { font-size: 18px; font-weight: 600; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+  .credit .details { color: var(--discret); font-size: 12.5px; margin-top: 4px; }
+  .credit .actions { display: flex; gap: 18px; margin-top: 6px; align-items: center; justify-content: space-between; }
   .modifier {
-    width: 44px; height: 44px; margin-right: -10px; border: 0; background: none; color: var(--alerte);
+    width: 44px; height: 44px; margin-right: -12px; border: 0; background: none; color: var(--discret);
     display: grid; place-items: center;
   }
-  .modifier svg { width: 20px; height: 20px; }
-  .modifier:active { opacity: .55; }
-  .lien { border: 0; background: none; color: var(--accent); padding: 8px 0; font-weight: 600; min-height: 44px; }
-  table.echeancier { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 14px; font-variant-numeric: tabular-nums; }
-  table.echeancier th, table.echeancier td { text-align: right; padding: 7px 4px; border-top: 1px solid var(--trait); }
+  .modifier svg { width: 18px; height: 18px; }
+  .modifier:active { opacity: .5; }
+  .lien { border: 0; background: none; color: var(--accent); padding: 8px 0; font-weight: 500; min-height: 44px; }
+  table.echeancier { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 13.5px; font-variant-numeric: tabular-nums; }
+  table.echeancier th, table.echeancier td { text-align: right; padding: 6px 4px; border-top: 1px solid var(--trait); }
   table.echeancier th:first-child, table.echeancier td:first-child { text-align: left; text-transform: capitalize; white-space: nowrap; }
-  table.echeancier th { color: var(--discret); font-weight: 600; font-size: 12px; border-top: 0; }
-  table.echeancier tr.resume td { background: var(--accent-doux); font-weight: 600; padding: 9px 6px; border-top: 0; }
-  table.echeancier tr.resume td:first-child { border-radius: 12px 0 0 12px; }
-  table.echeancier tr.resume td:last-child { border-radius: 0 12px 12px 0; }
-  table.echeancier tr.resume small { display: block; font-size: 11px; font-weight: 500; color: var(--discret); }
-  .pile { display: grid; gap: 16px; }
+  table.echeancier th { color: var(--discret); font-weight: 500; font-size: 11.5px; border-top: 0; }
+  table.echeancier tr.resume td { background: var(--accent-doux); font-weight: 600; padding: 8px 6px; border-top: 0; }
+  table.echeancier tr.resume td:first-child { border-radius: 10px 0 0 10px; }
+  table.echeancier tr.resume td:last-child { border-radius: 0 10px 10px 0; }
+  table.echeancier tr.resume small { display: block; font-size: 10.5px; font-weight: 400; color: var(--discret); }
+  .pile { display: grid; gap: 12px; }
 
-  .annees { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0 22px; }
-  .puce { border-radius: 999px; padding: 8px 18px; min-height: 44px; font-weight: 600; }
-  .puce.actif { background: var(--accent-pastel); border-color: var(--accent-pastel); color: #23574a; }
+  .annees { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0 20px; }
+  .puce { border-radius: 999px; padding: 7px 16px; min-height: 40px; font-weight: 500; }
+  .puce.actif { background: var(--accent-pastel); border-color: var(--accent-pastel); color: #2b5e50; }
 
   /* Écran d'accueil : code familial, messages d'erreur */
-  .accueil { max-width: 380px; margin: 11vh auto 0; text-align: center; }
-  .accueil img { width: 88px; height: 88px; border-radius: 22px; box-shadow: 0 14px 34px rgba(63,140,117,.22); }
-  .accueil h2 { font-size: 24px; font-weight: 700; letter-spacing: -.02em; margin: 20px 0 8px; }
-  .accueil .aide { margin: 0 0 26px; font-size: 15px; }
+  .accueil { max-width: 360px; margin: 11vh auto 0; text-align: center; }
+  .accueil img { width: 76px; height: 76px; border-radius: 19px; box-shadow: 0 8px 24px rgba(67,144,122,.16); }
+  .accueil h2 { font-size: 22px; font-weight: 600; letter-spacing: -.02em; margin: 18px 0 6px; }
+  .accueil .aide { margin: 0 0 24px; font-size: 14px; }
   .accueil .champ { text-align: left; }
   .accueil .champ input { letter-spacing: .04em; }
-  .accueil .bouton { width: 100%; margin-top: 8px; }
+  .accueil .bouton { width: 100%; margin-top: 6px; }
   .accueil .erreur { margin: -4px 0 12px; text-align: left; }
 
   dialog {
-    border-radius: 28px; padding: 0; width: min(440px, calc(100vw - 32px));
+    border: 1px solid rgba(255,255,255,.7); border-radius: 26px; padding: 0; width: min(420px, calc(100vw - 32px));
     max-height: 90vh; max-height: 90dvh; overflow: auto; overscroll-behavior: contain;
-    background: rgba(250,252,251,.82); color: var(--texte);
-    box-shadow: 0 20px 60px rgba(39,50,46,.18), inset 0 1px 0 rgba(255,255,255,.95);
+    background: rgba(250,252,251,.86); color: var(--texte);
+    -webkit-backdrop-filter: var(--flou); backdrop-filter: var(--flou);
+    box-shadow: 0 16px 50px rgba(39,50,46,.14);
   }
-  dialog::backdrop {
-    background: rgba(39,50,46,.16);
-    -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
-  }
-  dialog form { padding: 24px; }
-  dialog h3 { margin: 0 0 16px; font-size: 19px; font-weight: 650; letter-spacing: -.01em; }
-  .champ { display: block; margin-bottom: 16px; }
-  .champ > span { display: block; font-size: 13px; color: var(--discret); margin-bottom: 6px; font-weight: 500; }
+  dialog::backdrop { background: rgba(39,50,46,.12); }
+  dialog form { padding: 22px; }
+  dialog h3 { margin: 0 0 14px; font-size: 18px; font-weight: 600; letter-spacing: -.01em; }
+  .champ { display: block; margin-bottom: 14px; }
+  .champ > span { display: block; font-size: 12.5px; color: var(--discret); margin-bottom: 5px; font-weight: 400; }
   .champ input:not([type="checkbox"]), .champ select, .champ textarea {
-    width: 100%; padding: 13px 15px; border: 1px solid var(--bord); border-radius: 14px;
-    background: rgba(255,255,255,.65); font-size: 16px; -webkit-appearance: none; appearance: none;
+    width: 100%; padding: 12px 14px; border: 1px solid var(--bord); border-radius: 13px;
+    background: rgba(255,255,255,.75); font-size: 16px; -webkit-appearance: none; appearance: none;
   }
   .champ input:focus, .champ select:focus { outline: 2px solid var(--accent-pastel); outline-offset: -1px; }
   .champ.case { display: flex; align-items: center; gap: 12px; }
-  .champ.case input { width: 22px; height: 22px; accent-color: var(--accent); }
-  .champ.case > span { margin: 0; font-size: 15px; color: var(--texte); }
-  .boutons { display: flex; gap: 10px; margin-top: 20px; align-items: center; }
+  .champ.case input { width: 20px; height: 20px; accent-color: var(--accent); }
+  .champ.case > span { margin: 0; font-size: 14.5px; color: var(--texte); }
+  .boutons { display: flex; gap: 10px; margin-top: 18px; align-items: center; }
   .boutons .espace { flex: 1; }
   .bouton {
-    border: 1px solid var(--bord); background: rgba(255,255,255,.6); border-radius: 16px;
-    padding: 12px 18px; min-height: 50px; font-weight: 600;
+    border: 1px solid var(--bord); background: rgba(255,255,255,.7); border-radius: 14px;
+    padding: 11px 18px; min-height: 46px; font-weight: 500;
   }
-  .bouton.principal {
-    background: linear-gradient(180deg, #4f9c84, #3f8c75); border-color: transparent; color: #fff;
-    box-shadow: 0 8px 20px rgba(63,140,117,.25), inset 0 1px 0 rgba(255,255,255,.3);
-  }
-  .bouton.danger { color: var(--alerte); border-color: transparent; background: none; box-shadow: none; padding-left: 0; }
+  .bouton.principal { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .bouton.danger { color: var(--alerte); border-color: transparent; background: none; padding-left: 0; }
   .erreur { color: var(--alerte); font-size: 13px; margin: 8px 0 0; }
   @media (max-width: 600px) {
     dialog[open] {
-      width: 100%; max-width: 100%; margin: auto 0 0; border-radius: 28px 28px 0 0;
+      width: 100%; max-width: 100%; margin: auto 0 0; border-radius: 26px 26px 0 0; border-bottom: 0;
       animation: monte .24s ease-out;
     }
-    dialog form { padding: 10px 18px calc(18px + env(safe-area-inset-bottom)); }
+    dialog form { padding: 8px 18px calc(16px + env(safe-area-inset-bottom)); }
     dialog form::before {
-      content: ""; display: block; width: 36px; height: 5px; border-radius: 3px;
-      background: rgba(39,50,46,.15); margin: 0 auto 16px;
+      content: ""; display: block; width: 34px; height: 4px; border-radius: 2px;
+      background: rgba(39,50,46,.14); margin: 0 auto 14px;
     }
     .boutons { flex-wrap: wrap; }
     .boutons .bouton:not(.danger) { flex: 1; }
@@ -400,7 +400,7 @@ function majEtat() {
   e.classList.toggle('reessayer', !enCours && !!avis);
 }
 function memoriser() {
-  if (d && d.mois === d.moisCourant) stock.ecrire(CLE_CACHE, JSON.stringify(d));
+  if (d && d.mois === (d.moisDefaut || d.moisCourant)) stock.ecrire(CLE_CACHE, JSON.stringify(d));
 }
 const charger = mois => serveur('donnees', { mois: mois || '' });
 const sauver = (table, objet) => serveur('enregistrer', { table, objet, mois: d.mois });
@@ -492,9 +492,34 @@ function ajouterMois(m, n) {
   return Math.floor(t / 12) + '-' + String(t % 12 + 1).padStart(2, '0');
 }
 
-/** Restant dû aujourd'hui et échéances à venir (une par mois, la dernière ajustée). */
+/** Paiements cochés (tous les mois) de la charge qui rembourse ce crédit, après son mois de référence. */
+function paiementsCoches(charge) {
+  const autres = (d.paiements || []).filter(p => p.mois !== d.mois);
+  return autres.concat(d.lignes.filter(l => l.passee)).filter(p => p.charge === charge)
+    .sort((a, b) => a.mois.localeCompare(b.mois));
+}
+
+/**
+ * Restant dû aujourd'hui et échéances à venir (une par mois, la dernière ajustée).
+ * Crédit relié à une charge : il baisse quand on coche son paiement dans l'onglet Mois.
+ * Crédit géré à la main : il baisse tout seul chaque mois.
+ */
 function projeterCredit(c, courant) {
   const m = Number(c.mensualite) || 0;
+  if (c.charge) {
+    const payes = paiementsCoches(c.charge).filter(p => !c.au || p.mois > c.au);
+    let reste = Math.max(0, r2((Number(c.restant) || 0) - somme(payes)));
+    const aujourdhui = reste;
+    let mois = payes.length ? payes[payes.length - 1].mois : (c.au || ajouterMois(courant, -1));
+    const echeances = [];
+    while (m > 0 && reste > 0 && echeances.length < 600) {
+      mois = ajouterMois(mois, 1);
+      const paye = Math.min(m, reste);
+      reste = r2(reste - paye);
+      echeances.push({ mois, paye, reste });
+    }
+    return { aujourdhui, echeances, fin: echeances.length ? echeances[echeances.length - 1].mois : null };
+  }
   const depart = c.au || courant;
   const ecoule = Math.max(0, moisEntre(depart, courant));
   let reste = Math.max(0, r2((Number(c.restant) || 0) - m * ecoule));
@@ -534,6 +559,7 @@ const MOIS_COURTS = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 
 const moisListe = texte => String(texte || '').split(/[;, ]+/).map(Number).filter(n => n >= 1 && n <= 12);
 const RUBRIQUES_IMPOTS = ['Crèche', 'Périscolaire', 'Cantine'];
 const comptes = () => ['Joint'].concat(d.personnes);
+const cloture = m => (d.clotures || []).find(c => c.mois === m) || null;
 const parJour = (a, b) => (a.jour == null ? 99 : a.jour) - (b.jour == null ? 99 : b.jour) || (a.ordre || 0) - (b.ordre || 0) || String(a.intitule).localeCompare(b.intitule);
 
 const ICONES = {
@@ -545,7 +571,8 @@ const ICONES = {
   gauche: '<path d="M15 6l-6 6 6 6"/>',
   droite: '<path d="M9 6l6 6-6 6"/>',
   coche: '<path d="M5 12l4 4 10-10"/>',
-  crayon: '<path d="M4 20h4L19 9l-4-4L4 16v4zM14 6l4 4"/>'
+  crayon: '<path d="M4 20h4L19 9l-4-4L4 16v4zM14 6l4 4"/>',
+  cadenas: '<path d="M6 11h12v9H6zM8.5 11V8a3.5 3.5 0 017 0v3"/>'
 };
 const icone = (n, style) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${style || 1.8}" stroke-linecap="round" stroke-linejoin="round">${ICONES[n]}</svg>`;
 
@@ -570,7 +597,7 @@ function ligneHtml(l, opts) {
   const recurrence = opts.recurrence ? moisListe(l.recurrence) : [];
   if (recurrence.length && recurrence.length < 12) etiquettes.push(recurrence.map(n => MOIS_COURTS[n - 1]).join(' '));
   return `<div class="ligne ${opts.pointer && l.passee ? 'passee' : ''} ${opts.inactive ? 'inactive' : ''}">
-    <button class="corps" data-action="${opts.pointer ? 'pointer' : opts.action}" data-id="${l.id}"${opts.pointer ? ` aria-pressed="${!!l.passee}"` : ''}>
+    <button class="corps" data-action="${opts.pointer ? 'pointer' : opts.action}" data-id="${l.id}"${opts.pointer ? ` aria-pressed="${!!l.passee}"` : ''}${opts.verrou ? ' disabled' : ''}>
       ${opts.pointer ? `<span class="coche">${icone('coche', 3)}</span>` : ''}
       ${opts.jour ? `<span class="jour">${l.jour != null ? 'le ' + l.jour : '—'}</span>` : ''}
       <span class="nom">${esc(opts.nom || l.intitule)}${etiquettes.map(e => `<small>${e}</small>`).join('')}</span>
@@ -595,12 +622,16 @@ function vueMois() {
   </div>`;
   if (!d.lignes.length) return barre + '<p class="vide">Rien pour ce mois : l’appli n’existait pas encore.</p>';
 
+  const ferme = cloture(m);
+  const bandeau = ferme ? `<div class="cloture">${icone('cadenas', 1.8)}
+    <span>Mois clôturé${ferme.date ? ' le ' + dateCourte(ferme.date) : ''}</span>
+    <button class="lien" data-action="rouvrir">Rouvrir</button></div>` : '';
   const c = calculerMois(d.lignes, d.personnes, d.arrondi);
   const avecVirement = d.personnes.filter(p => c.pers[p].ligne);
   const hero = `<div class="hero"><h3>À virer sur le compte joint</h3>
     ${avecVirement.map(p => {
       const v = c.pers[p];
-      return `<button class="virement ${v.ligne.passee ? 'fait' : ''}" data-action="pointer" data-id="${v.ligne.id}" aria-pressed="${!!v.ligne.passee}">
+      return `<button class="virement ${v.ligne.passee ? 'fait' : ''}" data-action="pointer" data-id="${v.ligne.id}" aria-pressed="${!!v.ligne.passee}"${ferme ? ' disabled' : ''}>
         <span class="coche">${icone('coche', 3)}</span><span class="qui">${esc(p)}</span><b>${eur(v.virement)}</b></button>`;
     }).join('')}
   </div>`;
@@ -611,17 +642,17 @@ function vueMois() {
 
   // Compte joint : virements, rentrées, puis charges dans l'ordre des prélèvements
   const joint = avecVirement.map(p => ligneHtml(Object.assign({}, c.pers[p].ligne, { type: 'Rentrée' }),
-    { pointer: true, nom: 'Virement de ' + p, montant: c.pers[p].virement }))
+    { pointer: true, verrou: !!ferme, nom: 'Virement de ' + p, montant: c.pers[p].virement }))
     .concat(d.lignes.filter(l => l.compte === 'Joint' && l.type !== 'Virement').map(avecOrdre).sort(rentreesDabord)
-      .map(l => ligneHtml(l, { pointer: true })));
+      .map(l => ligneHtml(l, { pointer: true, verrou: !!ferme })));
   let blocs = bloc('Compte joint', joint.join(''), 'pointage');
 
   // Comptes perso : seulement ce qui est payé depuis ce compte (ni salaire, ni virement)
   d.personnes.forEach(p => {
     const lignes = d.lignes.filter(l => l.compte === p && l.type === 'Charge').map(avecOrdre).sort(parJour);
-    if (lignes.length) blocs += bloc(p, lignes.map(l => ligneHtml(l, { pointer: true })).join(''), 'pointage');
+    if (lignes.length) blocs += bloc(p, lignes.map(l => ligneHtml(l, { pointer: true, verrou: !!ferme })).join(''), 'pointage');
   });
-  return barre + hero + tuiles + blocs;
+  return barre + bandeau + hero + tuiles + blocs;
 }
 
 function vueCharges() {
@@ -651,7 +682,7 @@ function vueCredits() {
       <div class="entete"><h4>${esc(c.nom)}</h4><b>${eur(p.aujourdhui)}</b></div>
       <div class="details">${p.aujourdhui > 0
         ? `${eur(c.mensualite)} par mois · ${p.echeances.length} échéance${p.echeances.length > 1 ? 's' : ''} · fini en ${p.fin ? nomMois(p.fin) : '—'}`
-        : 'Remboursé'}${c.note ? ' · ' + esc(c.note) : ''}</div>
+        : 'Remboursé'}${c.charge ? ' · payé par ' + esc((d.charges.find(x => x.id === c.charge) || {}).intitule || '?') : ''}${c.note ? ' · ' + esc(c.note) : ''}</div>
       <div class="actions">
         <button class="lien" data-action="echeancier" data-id="${c.id}">${ouvert ? 'Masquer' : 'Voir'} l’échéancier</button>
         <button class="modifier" data-action="credit" data-id="${c.id}" aria-label="Modifier">${icone('crayon', 2)}</button>
@@ -725,8 +756,8 @@ function ouvrir(def) {
     <div class="boutons">
       ${def.supprimer ? `<button type="button" class="bouton danger" data-action="f-supprimer">${esc(def.libelleSupprimer || 'Supprimer')}</button>` : ''}
       <span class="espace"></span>
-      <button type="button" class="bouton" data-action="f-annuler">Annuler</button>
-      <button type="submit" class="bouton principal">Enregistrer</button>
+      <button type="button" class="bouton" data-action="f-annuler">${esc(def.libelleAnnuler || 'Annuler')}</button>
+      <button type="submit" class="bouton principal">${esc(def.libelleValider || 'Enregistrer')}</button>
     </div>`;
   fenetre.showModal();
   const premier = formulaire.querySelector('input:not([type="checkbox"]), select');
@@ -832,11 +863,26 @@ function fenetreCredit(c) {
       { k: 'debut', label: 'Date de début', type: 'mois', valeur: c ? c.debut : '' },
       { k: 'restant', label: 'Restant dû aujourd’hui (€)', type: 'montant', valeur: c ? projeterCredit(c, d.moisCourant).aujourdhui : null, obligatoire: true },
       { k: 'mensualite', label: 'Mensualité (€)', type: 'montant', valeur: c ? c.mensualite : null, obligatoire: true },
+      { k: 'charge', label: 'Payé par', type: 'choix', valeur: c ? c.charge : '', options: [['', 'Géré à la main']].concat(
+        d.charges.filter(x => x.type === 'Charge' && (x.active || (c && x.id === c.charge)))
+          .sort((a, b) => String(a.intitule).localeCompare(b.intitule)).map(x => [x.id, x.intitule])) },
       { k: 'note', label: 'Note', valeur: c ? c.note : '' }
     ],
-    texte: 'Restant dû après l’échéance de ' + nomMois(d.moisCourant) + ' ; il baisse ensuite tout seul chaque mois.',
+    texte: 'Relié à une charge : le restant dû baisse quand tu coches son paiement dans l’onglet Mois. Géré à la main : il baisse tout seul chaque mois.',
     supprimer: c ? () => { if (confirm('Supprimer ' + c.nom + ' ?')) effacer('Crédits', c.id); } : null,
-    valider: v => sauver('Crédits', Object.assign({}, c || {}, v, { au: d.moisCourant }))
+    valider: v => {
+      const credit = Object.assign({}, c || {}, v);
+      if (v.charge) {
+        // Le restant saisi tient compte des paiements déjà cochés : on part du dernier
+        const mois = paiementsCoches(v.charge).map(p => p.mois);
+        let au = mois.length ? mois[mois.length - 1] : ajouterMois(d.moisCourant, -1);
+        if (c && c.charge === v.charge && c.au && c.au > au) au = c.au;
+        credit.au = au;
+      } else {
+        credit.au = d.moisCourant;
+      }
+      sauver('Crédits', credit);
+    }
   });
 }
 
@@ -881,6 +927,19 @@ function fenetreKm(k) {
   });
 }
 
+/** Tout est coché : on propose de clôturer le mois, puis on passe au suivant. */
+function proposerCloture(mois) {
+  const suivant = ajouterMois(mois, 1);
+  ouvrir({
+    titre: 'Clôturer ' + nomMois(mois) + ' ?',
+    texte: 'Tout est coché. Une fois clôturé, le mois ne sera plus modifiable et l’appli passera à ' + nomMois(suivant) + '.',
+    champs: [],
+    libelleAnnuler: 'Plus tard',
+    libelleValider: 'Clôturer',
+    valider: () => serveur('cloturer', { mois, suivant })
+  });
+}
+
 // ====== Clics ======
 
 document.addEventListener('click', e => {
@@ -895,12 +954,17 @@ document.addEventListener('click', e => {
       charger(d ? d.mois : '');
       break;
     case 'pointer': {
+      if (cloture(d.mois)) break;
       const l = trouve(d.lignes);
       l.passee = !l.passee;
       rendre();
       sauver('Lignes', l);
+      if (l.passee && d.lignes.every(x => x.passee)) proposerCloture(d.mois);
       break;
     }
+    case 'rouvrir':
+      if (confirm('Rouvrir ' + nomMois(d.mois) + ' ? Il redeviendra modifiable.')) serveur('rouvrir', { mois: d.mois });
+      break;
     case 'charge': fenetreCharge(trouve(d.charges)); break;
     case 'ajouter-charge': fenetreCharge(null, b.dataset.compte); break;
     case 'ajouter-salaire': fenetreCharge(null, b.dataset.compte, { type: 'Rentrée', intitule: 'Salaire ' + b.dataset.compte }); break;
