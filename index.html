@@ -225,6 +225,7 @@
   .credit .entete { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
   .credit .entete h4 { margin: 0; font-size: 16px; font-weight: 500; }
   .credit .entete b { font-size: 18px; font-weight: 600; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+  .total-restant { color: var(--discret); font-size: 11.5px; font-style: italic; text-align: right; margin-top: 1px; }
   .credit .details { color: var(--discret); font-size: 12.5px; margin-top: 4px; }
   .credit .actions { display: flex; gap: 18px; margin-top: 6px; align-items: center; justify-content: space-between; }
   .modifier {
@@ -499,6 +500,31 @@ function paiementsCoches(charge) {
     .sort((a, b) => a.mois.localeCompare(b.mois));
 }
 
+const echeancesDe = c => (d.echeances || []).filter(e => e.credit === c.id).sort((a, b) => a.terme - b.terme);
+
+/**
+ * Crédit avec tableau d'amortissement (prêt immobilier) : une échéance par mois à partir du mois de la
+ * 1re échéance (c.debut). Payée si son mois est au plus tard c.au, ou si son paiement est coché.
+ * Montants : intérêts + amortissement (sans l'assurance). Le restant affiché est le capital restant à amortir.
+ */
+function projeterTableau(c, tableau) {
+  const initial = Number(c.initial) || r2(tableau.reduce((s, e) => s + (e.amortissement || 0), 0));
+  if (!c.debut) return { tableau: true, sansDate: true, aujourdhui: initial, totalRestant: null, echeances: [], fin: null };
+  const coches = new Set(c.charge ? paiementsCoches(c.charge).map(p => p.mois) : []);
+  let rembourse = 0, totalRestant = 0;
+  const echeances = [];
+  tableau.forEach(e => {
+    const mois = ajouterMois(c.debut, e.terme - 1);
+    const paye = r2((e.interets || 0) + (e.amortissement || 0));
+    if ((c.au && mois <= c.au) || coches.has(mois)) rembourse += e.amortissement || 0;
+    else { echeances.push({ mois, paye, reste: e.capital }); totalRestant += paye; }
+  });
+  return {
+    tableau: true, aujourdhui: Math.max(0, r2(initial - rembourse)), totalRestant: r2(totalRestant),
+    echeances, fin: echeances.length ? echeances[echeances.length - 1].mois : null
+  };
+}
+
 /**
  * Restant dû aujourd'hui et échéances à venir (une par mois, la dernière ajustée).
  * Crédit relié à une charge : il baisse quand on coche son paiement dans l'onglet Mois.
@@ -506,6 +532,8 @@ function paiementsCoches(charge) {
  */
 function projeterCredit(c, courant) {
   const m = Number(c.mensualite) || 0;
+  const tableau = echeancesDe(c);
+  if (tableau.length) return projeterTableau(c, tableau);
   if (c.charge) {
     const payes = paiementsCoches(c.charge).filter(p => !c.au || p.mois > c.au);
     let reste = Math.max(0, r2((Number(c.restant) || 0) - somme(payes)));
@@ -684,19 +712,22 @@ function vueCredits() {
   const cartes = d.credits.map(c => {
     const p = projeterCredit(c, d.moisCourant);
     const ouvert = ouverts.has(c.id);
+    const rythme = p.tableau ? (p.echeances.length ? eur(p.echeances[0].paye) + ' la prochaine échéance' : '') : eur(c.mensualite) + ' par mois';
     return `<div class="carte credit">
       <div class="entete"><h4>${esc(c.nom)}</h4><b>${eur(p.aujourdhui)}</b></div>
-      <div class="details">${p.aujourdhui > 0
-        ? `${eur(c.mensualite)} par mois · ${p.echeances.length} échéance${p.echeances.length > 1 ? 's' : ''} · fini en ${p.fin ? nomMois(p.fin) : '—'}`
+      ${p.tableau && p.totalRestant != null ? `<div class="total-restant">${eur(p.totalRestant)} au total restant à payer, intérêts compris</div>` : ''}
+      <div class="details">${p.sansDate ? 'Indique le mois de la 1re échéance (crayon) pour calculer l’échéancier.'
+        : p.aujourdhui > 0
+        ? `${rythme} · ${p.echeances.length} échéance${p.echeances.length > 1 ? 's' : ''} · fini en ${p.fin ? nomMois(p.fin) : '—'}`
         : 'Remboursé'}${c.charge ? ' · payé par ' + esc((d.charges.find(x => x.id === c.charge) || {}).intitule || '?') : ''}${c.note ? ' · ' + esc(c.note) : ''}</div>
       <div class="actions">
         <button class="lien" data-action="echeancier" data-id="${c.id}">${ouvert ? 'Masquer' : 'Voir'} l’échéancier</button>
         <button class="modifier" data-action="credit" data-id="${c.id}" aria-label="Modifier">${icone('crayon', 2)}</button>
       </div>
-      ${ouvert ? `<table class="echeancier"><tr><th>Mois</th><th>Échéance</th><th>Reste dû</th></tr>
+      ${ouvert ? `<table class="echeancier"><tr><th>Mois</th><th>Échéance</th><th>${p.tableau ? 'Capital restant' : 'Reste dû'}</th></tr>
         <tr class="resume"><td><small>Début</small>${c.debut ? nomMois(c.debut) : '—'}</td>
-          <td><small>Payé à ce jour</small>${c.initial != null ? eur(r2(c.initial - p.aujourdhui)) : '—'}</td>
-          <td><small>Reste dû</small>${eur(p.aujourdhui)}</td></tr>
+          <td><small>${p.tableau ? 'Capital remboursé' : 'Payé à ce jour'}</small>${c.initial != null ? eur(r2(c.initial - p.aujourdhui)) : '—'}</td>
+          <td><small>${p.tableau ? 'Capital restant' : 'Reste dû'}</small>${eur(p.aujourdhui)}</td></tr>
         ${p.echeances.map(e => `<tr><td>${nomMois(e.mois)}</td><td>${eur(e.paye)}</td><td>${eur(e.reste)}</td></tr>`).join('')}</table>` : ''}
     </div>`;
   }).join('');
@@ -861,24 +892,31 @@ function fenetreCharge(ch, compte, defauts) {
 }
 
 function fenetreCredit(c) {
+  const tableau = !!(c && echeancesDe(c).length);
   ouvrir({
     titre: c ? c.nom : 'Nouveau crédit',
     champs: [
       { k: 'nom', label: 'Nom', valeur: c ? c.nom : '', obligatoire: true },
       { k: 'initial', label: 'Montant emprunté (€)', type: 'montant', valeur: c ? c.initial : null },
-      { k: 'debut', label: 'Date de début', type: 'mois', valeur: c ? c.debut : '' },
+      { k: 'debut', label: tableau ? 'Mois de la 1re échéance' : 'Date de début', type: 'mois', valeur: c ? c.debut : '', obligatoire: tableau },
+    ].concat(tableau ? [] : [
       { k: 'restant', label: 'Restant dû aujourd’hui (€)', type: 'montant', valeur: c ? projeterCredit(c, d.moisCourant).aujourdhui : null, obligatoire: true },
-      { k: 'mensualite', label: 'Mensualité (€)', type: 'montant', valeur: c ? c.mensualite : null, obligatoire: true },
+      { k: 'mensualite', label: 'Mensualité (€)', type: 'montant', valeur: c ? c.mensualite : null, obligatoire: true }
+    ]).concat([
       { k: 'charge', label: 'Payé par', type: 'choix', valeur: c ? c.charge : '', options: [['', 'Géré à la main']].concat(
         d.charges.filter(x => x.type === 'Charge' && (x.active || (c && x.id === c.charge)))
           .sort((a, b) => String(a.intitule).localeCompare(b.intitule)).map(x => [x.id, x.intitule])) },
       { k: 'note', label: 'Note', valeur: c ? c.note : '' }
-    ],
-    texte: 'Relié à une charge : le restant dû baisse quand tu coches son paiement dans l’onglet Mois. Géré à la main : il baisse tout seul chaque mois.',
+    ]),
+    texte: tableau
+      ? 'Échéances issues du tableau d’amortissement (intérêts + amortissement, sans l’assurance). Quand tu coches son paiement dans l’onglet Mois, l’échéance passe dans le capital remboursé.'
+      : 'Relié à une charge : le restant dû baisse quand tu coches son paiement dans l’onglet Mois. Géré à la main : il baisse tout seul chaque mois.',
     supprimer: c ? () => { if (confirm('Supprimer ' + c.nom + ' ?')) effacer('Crédits', c.id); } : null,
     valider: v => {
       const credit = Object.assign({}, c || {}, v);
-      if (v.charge) {
+      if (tableau) {
+        credit.au = c.au;   // les échéances payées viennent du tableau et des coches
+      } else if (v.charge) {
         // Le restant saisi tient compte des paiements déjà cochés : on part du dernier
         const mois = paiementsCoches(v.charge).map(p => p.mois);
         let au = mois.length ? mois[mois.length - 1] : ajouterMois(d.moisCourant, -1);
