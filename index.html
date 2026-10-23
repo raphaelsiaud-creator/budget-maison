@@ -225,6 +225,29 @@
   .credit .entete { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
   .credit .entete h4 { margin: 0; font-size: 16px; font-weight: 500; }
   .credit .entete b { font-size: 18px; font-weight: 600; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+  /* Graphique des dépenses */
+  .tuile.ouvre span::after { content: " ›"; color: var(--accent); }
+  .graph-tete { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
+  .graph-tete h3 { margin: 0; }
+  .graph-tete select {
+    border: 1px solid var(--bord); border-radius: 12px; padding: 7px 30px 7px 12px; font-size: 15px;
+    background: rgba(255,255,255,.75) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2343907a' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 9px center / 14px;
+    -webkit-appearance: none; appearance: none;
+  }
+  .graph-tete select:focus { outline: 2px solid var(--accent-pastel); outline-offset: -1px; }
+  .graph-tete select:focus:not(:focus-visible) { outline: none; }
+  svg.graphique { width: 100%; height: auto; display: block; stroke-width: 1; }
+  .g-grille { stroke: var(--trait); }
+  .g-axe { fill: var(--discret); font-size: 9px; }
+  .g-valeur { fill: var(--texte); font-size: 8.5px; font-weight: 500; font-variant-numeric: tabular-nums; }
+  .g-barre { fill: var(--accent-pastel); }
+  .g-barre.actuelle { fill: var(--accent); }
+  .g-resume { display: flex; gap: 12px; margin-top: 12px; }
+  .g-resume span {
+    flex: 1; background: var(--accent-doux); border-radius: 14px; padding: 10px 12px;
+    font-size: 11.5px; color: var(--discret);
+  }
+  .g-resume b { display: block; font-size: 16px; font-weight: 600; color: var(--texte); margin-top: 2px; font-variant-numeric: tabular-nums; }
   .total-restant { color: var(--discret); font-size: 11.5px; font-style: italic; text-align: right; margin-top: 1px; }
   .credit .details { color: var(--discret); font-size: 12.5px; margin-top: 4px; }
   .credit .actions { display: flex; gap: 18px; margin-top: 6px; align-items: center; justify-content: space-between; }
@@ -670,7 +693,7 @@ function vueMois() {
     }).join('')}
   </div>`;
   const tuiles = `<div class="tuiles">
-    <div class="tuile"><span>Reste à prélever</span><b>${eur(c.joint.resteAPrelever)}</b></div>
+    <button class="tuile ouvre" data-action="graphique"><span>Reste à prélever</span><b>${eur(c.joint.resteAPrelever)}</b></button>
     <div class="tuile"><span>Reste en fin de mois</span><b class="${c.joint.fin < 0 ? 'negatif' : ''}">${eur(c.joint.fin)}</b></div>
   </div>`;
 
@@ -971,6 +994,73 @@ function fenetreKm(k) {
   });
 }
 
+// ====== Graphique des dépenses réelles ======
+
+/** Dépenses d'un mois : toutes les charges − les rentrées communes (CAF). */
+function depensesMois(lignes) {
+  return r2(lignes.reduce((s, l) => s + (l.type === 'Charge' ? Number(l.montant) || 0
+    : l.type === 'Rentrée' && l.partagee ? -(Number(l.montant) || 0) : 0), 0));
+}
+
+/** Dépenses par mois jusqu'au mois en cours ; le mois affiché est recalculé en direct. */
+function historiqueDepenses() {
+  const h = {};
+  (d.historique || []).forEach(x => { h[x.mois] = x.depenses; });
+  if (d.mois <= d.moisCourant && d.lignes.length) h[d.mois] = depensesMois(d.lignes);
+  return h;
+}
+
+function ouvrirGraphique(annee) {
+  const h = historiqueDepenses();
+  const annees = [...new Set(Object.keys(h).map(m => Number(m.slice(0, 4))))].sort();
+  if (!annees.length) annees.push(Number(d.moisCourant.slice(0, 4)));
+  if (!annee || annees.indexOf(annee) < 0) annee = annees.indexOf(Number(d.moisCourant.slice(0, 4))) >= 0
+    ? Number(d.moisCourant.slice(0, 4)) : annees[annees.length - 1];
+  fenetreCourante = { champs: [], valider: () => {} };
+  formulaire.innerHTML = `<div class="graph-tete"><h3>Dépenses réelles</h3>
+      <select id="annee-graph" aria-label="Année">${annees.map(a => `<option value="${a}" ${a === annee ? 'selected' : ''}>${a}</option>`).join('')}</select></div>
+    <p class="aide" style="margin:0 0 10px">Toutes les dépenses du mois, moins la CAF. Arrondi à l’euro supérieur.</p>
+    <div id="graph">${graphiqueHtml(h, annee)}</div>
+    <div class="boutons"><button type="button" class="bouton principal" data-action="f-annuler">Fermer</button></div>`;
+  if (!fenetre.open) fenetre.showModal();
+}
+
+function graphiqueHtml(h, annee) {
+  const valeurs = MOIS_COURTS.map((_, i) => {
+    const m = annee + '-' + String(i + 1).padStart(2, '0');
+    return h[m] != null ? Math.max(0, Math.ceil(h[m])) : null;
+  });
+  const presentes = valeurs.filter(v => v != null);
+  if (!presentes.length) return '<p class="vide">Pas encore de données pour cette année.</p>';
+  const brut = Math.max(...presentes, 1);
+  const pas = [100, 250, 500, 1000, 2000, 2500, 5000, 10000].find(p => brut / p <= 4) || 20000;
+  const max = Math.ceil(brut / pas) * pas;
+  const L = 340, H = 220, g = 34, bas = 22, haut = 16, larg = (L - g) / 12;
+  const y = v => haut + (H - haut - bas) * (1 - v / max);
+  const nb = n => n.toLocaleString('fr-FR');
+  let svg = '';
+  for (let v = 0; v <= max; v += pas) {
+    svg += `<line x1="${g}" x2="${L}" y1="${y(v)}" y2="${y(v)}" class="g-grille"/>
+      <text x="${g - 5}" y="${y(v) + 3}" text-anchor="end" class="g-axe">${v >= 1000 ? nb(v / 1000) + ' k' : nb(v)}</text>`;
+  }
+  const courant = d.moisCourant;
+  valeurs.forEach((v, i) => {
+    const x = g + i * larg, m = annee + '-' + String(i + 1).padStart(2, '0');
+    svg += `<text x="${x + larg / 2}" y="${H - 6}" text-anchor="middle" class="g-axe">${MOIS_COURTS[i].charAt(0).toUpperCase()}</text>`;
+    if (v == null) return;
+    const yy = y(v);
+    svg += `<rect x="${x + larg * 0.18}" y="${yy}" width="${larg * 0.64}" height="${Math.max(0, H - bas - yy)}" rx="4" class="${m === courant ? 'g-barre actuelle' : 'g-barre'}"/>
+      <text x="${x + larg / 2}" y="${yy - 4}" text-anchor="middle" class="g-valeur">${nb(v)}</text>`;
+  });
+  const total = presentes.reduce((s, v) => s + v, 0);
+  return `<svg viewBox="0 0 ${L} ${H}" class="graphique" role="img" aria-label="Dépenses réelles par mois en ${annee}">${svg}</svg>
+    <div class="g-resume"><span>Total ${annee}<b>${nb(total)} €</b></span><span>Moyenne par mois<b>${nb(Math.ceil(total / presentes.length))} €</b></span></div>`;
+}
+
+document.addEventListener('change', e => {
+  if (e.target.id === 'annee-graph') ouvrirGraphique(Number(e.target.value));
+});
+
 /** Tout est coché : on propose de clôturer le mois, puis on passe au suivant. */
 function proposerCloture(mois) {
   const suivant = ajouterMois(mois, 1);
@@ -1007,6 +1097,7 @@ document.addEventListener('click', e => {
       break;
     }
     case 'cloturer': proposerCloture(d.mois); break;
+    case 'graphique': ouvrirGraphique(); break;
     case 'rouvrir':
       if (confirm('Rouvrir ' + nomMois(d.mois) + ' ? Il redeviendra modifiable.')) serveur('rouvrir', { mois: d.mois });
       break;
