@@ -234,7 +234,10 @@
   .separateur { height: 7px; background: rgba(39,50,46,.035); border-top: 1px solid var(--trait); border-bottom: 1px solid var(--trait); }
 
   /* Appui long sur le titre du mois */
-  [data-appui-long] { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; transition: opacity .2s; }
+  [data-appui-long] {
+    -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; touch-action: none;
+    cursor: default; transition: opacity .2s;
+  }
   [data-appui-long].appui { opacity: .35; transition: opacity 3s linear; }
 
   /* Impôts : bouton du récapitulatif, tout à droite */
@@ -1149,17 +1152,31 @@ function finAppui() {
   appui.el.classList.remove('appui');
   appui = null;
 }
-document.addEventListener('pointerdown', e => {
-  const el = e.target.closest('[data-appui-long]');
-  if (!el) return;
+function debutAppui(el, x, y) {
   finAppui();
   el.classList.add('appui');
-  appui = { el, x: e.clientX, y: e.clientY, t: setTimeout(() => { finAppui(); ouvrirGraphique(); }, 3000) };
+  appui = { el, x, y, t: setTimeout(() => { finAppui(); ouvrirGraphique(); }, 3000) };
+}
+function bougeAppui(x, y) {
+  if (appui && Math.hypot(x - appui.x, y - appui.y) > 15) finAppui();
+}
+// Doigt (iPhone) : événements tactiles natifs ; on empêche Safari de transformer l'appui en défilement ou en sélection.
+document.addEventListener('touchstart', e => {
+  const el = e.target.closest('[data-appui-long]');
+  if (!el) return;
+  e.preventDefault();
+  debutAppui(el, e.touches[0].clientX, e.touches[0].clientY);
+}, { passive: false });
+document.addEventListener('touchmove', e => { if (appui) bougeAppui(e.touches[0].clientX, e.touches[0].clientY); }, { passive: true });
+['touchend', 'touchcancel'].forEach(t => document.addEventListener(t, finAppui));
+// Souris ou stylet (ordinateur) : événements « pointer »
+document.addEventListener('pointerdown', e => {
+  if (e.pointerType === 'touch') return;
+  const el = e.target.closest('[data-appui-long]');
+  if (el) debutAppui(el, e.clientX, e.clientY);
 });
-['pointerup', 'pointercancel'].forEach(t => document.addEventListener(t, finAppui));
-document.addEventListener('pointermove', e => {
-  if (appui && Math.hypot(e.clientX - appui.x, e.clientY - appui.y) > 12) finAppui();
-});
+document.addEventListener('pointermove', e => { if (e.pointerType !== 'touch') bougeAppui(e.clientX, e.clientY); });
+['pointerup', 'pointercancel'].forEach(t => document.addEventListener(t, e => { if (e.pointerType !== 'touch') finAppui(); }));
 document.addEventListener('contextmenu', e => { if (e.target.closest('[data-appui-long]')) e.preventDefault(); });
 
 // ====== Graphique des dépenses réelles ======
