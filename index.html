@@ -233,12 +233,12 @@
   /* Compte joint : séparation entre les entrées et les sorties */
   .separateur { height: 7px; background: rgba(39,50,46,.035); border-top: 1px solid var(--trait); border-bottom: 1px solid var(--trait); }
 
-  /* Appui long sur le titre du mois */
-  [data-appui-long] {
-    -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; touch-action: none;
-    cursor: default; transition: opacity .2s;
+  /* Titre du mois : un toucher ouvre le graphique */
+  .titre-mois {
+    border: 0; background: none; padding: 0; font: inherit; color: inherit; letter-spacing: inherit;
+    text-transform: inherit; touch-action: manipulation; -webkit-user-select: none; user-select: none;
   }
-  [data-appui-long].appui { opacity: .35; transition: opacity 3s linear; }
+  .titre-mois:active { opacity: .6; }
 
   /* Impôts : bouton du récapitulatif, tout à droite */
   .puce.recap { margin-left: auto; display: grid; place-items: center; width: 40px; padding: 0; color: var(--accent); }
@@ -714,7 +714,7 @@ function vueMois() {
   const premier = d.moisAvecDonnees[0] || courant;
   const barre = `<div class="barre-mois">
     <button class="rond" data-action="mois" data-m="${ajouterMois(m, -1)}" ${m <= premier ? 'disabled' : ''} aria-label="Mois précédent">${icone('gauche', 2.4)}</button>
-    <h2 data-appui-long title="Appui long : graphique des dépenses">${nomMois(m)}</h2>
+    <h2><button class="titre-mois" data-action="titre-mois" aria-label="${nomMois(m)} : graphique des dépenses">${nomMois(m)}</button></h2>
     <button class="rond" data-action="mois" data-m="${ajouterMois(m, 1)}" ${moisEntre(courant, m) >= 12 ? 'disabled' : ''} aria-label="Mois suivant">${icone('droite', 2.4)}</button>
   </div>`;
   if (!d.lignes.length) return barre + '<p class="vide">Rien pour ce mois : l’appli n’existait pas encore.</p>';
@@ -737,7 +737,7 @@ function vueMois() {
   const provisions = totalProvisions(m);
   const tuiles = `<div class="tuiles">
     <button class="tuile ouvre" data-action="solde"><span>Solde sur compte</span><b>${eur(r2(c.joint.resteAPrelever + provisions))}</b></button>
-    <button class="tuile ${ferme ? '' : 'ouvre'}" data-action="epargne"${ferme ? ' disabled' : ''}><span>Reste en fin de mois</span><b class="${c.joint.fin < 0 ? 'negatif' : ''}">${eur(c.joint.fin)}</b></button>
+    <div class="tuile"><span>Reste en fin de mois</span><b class="${c.joint.fin < 0 ? 'negatif' : ''}">${eur(c.joint.fin)}</b></div>
   </div>`;
 
   // Compte joint : virements, rentrées, puis charges dans l'ordre des prélèvements
@@ -1116,33 +1116,6 @@ function ouvrirSolde() {
     </div>`);
 }
 
-/** Reste en fin de mois : on peut l'augmenter (virements plus gros, à parts égales), jamais sous le montant calculé. */
-function fenetreEpargne() {
-  const c = calculerMois(d.lignes, d.personnes, d.arrondi);
-  const qui = d.personnes.filter(p => c.pers[p].ligne);
-  if (!qui.length) return;
-  const ecart = qui.reduce((s, p) => s + (c.pers[p].virement - c.pers[p].auto), 0);
-  const minimum = r2(c.joint.fin - ecart);
-  ouvrir({
-    titre: 'Épargne sur le compte joint',
-    texte: 'Ce qui reste sur le compte joint à la fin de ' + nomMois(d.mois) + '. Pour l’augmenter, les virements de '
-      + qui.join(' et ') + ' augmentent d’autant, à parts égales. Minimum : ' + eur(minimum) + ' (montant calculé).',
-    champs: [{ k: 'cible', label: 'Reste en fin de mois (€)', type: 'montant', valeur: c.joint.fin, obligatoire: true }],
-    verifier: v => v.cible < minimum - 0.004 ? 'Pas en dessous de ' + eur(minimum) + '.' : '',
-    libelleValider: 'Valider',
-    valider: v => {
-      const ajout = Math.round((v.cible - minimum) * 100);          // en centimes
-      qui.forEach((p, i) => {
-        const part = Math.floor(ajout / qui.length) + (i < ajout % qui.length ? 1 : 0);
-        const ligne = d.lignes.find(l => l.id === c.pers[p].ligne.id);
-        ligne.montant = ajout ? r2(c.pers[p].auto + part / 100) : null;   // 0 = retour au calcul automatique
-        sauver('Lignes', ligne);
-      });
-      rendre();
-    }
-  });
-}
-
 function ouvrirRecapImpots() {
   const lignes = d.impots.filter(i => i.annee === anneeImpots);
   const enfants = [...new Set(d.enfants.concat(lignes.map(i => i.pour).filter(Boolean)))];
@@ -1163,42 +1136,6 @@ function ouvrirRecapImpots() {
     }).join('')}
   </div>`);
 }
-
-// ====== Appui long (3 s) sur le titre du mois : graphique ======
-
-let appui = null;
-function finAppui() {
-  if (!appui) return;
-  clearTimeout(appui.t);
-  appui.el.classList.remove('appui');
-  appui = null;
-}
-function debutAppui(el, x, y) {
-  finAppui();
-  el.classList.add('appui');
-  appui = { el, x, y, t: setTimeout(() => { finAppui(); ouvrirGraphique(); }, 3000) };
-}
-function bougeAppui(x, y) {
-  if (appui && Math.hypot(x - appui.x, y - appui.y) > 15) finAppui();
-}
-// Doigt (iPhone) : événements tactiles natifs ; on empêche Safari de transformer l'appui en défilement ou en sélection.
-document.addEventListener('touchstart', e => {
-  const el = e.target.closest('[data-appui-long]');
-  if (!el) return;
-  e.preventDefault();
-  debutAppui(el, e.touches[0].clientX, e.touches[0].clientY);
-}, { passive: false });
-document.addEventListener('touchmove', e => { if (appui) bougeAppui(e.touches[0].clientX, e.touches[0].clientY); }, { passive: true });
-['touchend', 'touchcancel'].forEach(t => document.addEventListener(t, finAppui));
-// Souris ou stylet (ordinateur) : événements « pointer »
-document.addEventListener('pointerdown', e => {
-  if (e.pointerType === 'touch') return;
-  const el = e.target.closest('[data-appui-long]');
-  if (el) debutAppui(el, e.clientX, e.clientY);
-});
-document.addEventListener('pointermove', e => { if (e.pointerType !== 'touch') bougeAppui(e.clientX, e.clientY); });
-['pointerup', 'pointercancel'].forEach(t => document.addEventListener(t, e => { if (e.pointerType !== 'touch') finAppui(); }));
-document.addEventListener('contextmenu', e => { if (e.target.closest('[data-appui-long]')) e.preventDefault(); });
 
 // ====== Graphique des dépenses réelles ======
 
@@ -1304,8 +1241,8 @@ document.addEventListener('click', e => {
     }
     case 'cloturer': proposerCloture(d.mois); break;
     case 'graphique': ouvrirGraphique(); break;
+    case 'titre-mois': ouvrirGraphique(); break;
     case 'solde': ouvrirSolde(); break;
-    case 'epargne': fenetreEpargne(); break;
     case 'provision': fenetreProvision(id ? (d.provisions || []).find(x => x.id === id) : null); break;
     case 'recap-impots': ouvrirRecapImpots(); break;
     case 'rouvrir':
