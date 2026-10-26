@@ -95,14 +95,19 @@
     box-shadow: 0 8px 28px rgba(39,50,46,.09), inset 0 1px 0 rgba(255,255,255,.8);
   }
   nav.onglets:empty { display: none; }
+  /* L'onglet actif s'élargit, les autres se resserrent */
   nav.onglets button {
-    flex: 1; max-width: 110px; border: 0; background: none; padding: 6px 2px 5px; border-radius: 24px;
-    display: flex; flex-direction: column; align-items: center; gap: 1px;
-    font-size: 10px; color: var(--discret); min-height: 48px;
-    transition: background .2s, color .2s;
+    flex: 1 1 0; min-width: 0; border: 0; background: none; padding: 6px 2px 5px; border-radius: 24px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+    font-size: 9.5px; line-height: 1.15; text-align: center; color: var(--discret); min-height: 48px;
+    transition: flex-grow .35s cubic-bezier(.3,.7,.2,1), background .25s, color .25s, font-size .3s;
   }
-  nav.onglets button svg { width: 21px; height: 21px; stroke-width: 1.5; }
-  nav.onglets button.actif { color: var(--accent); font-weight: 600; background: var(--accent-doux); }
+  nav.onglets button span { max-width: 100%; padding-top: 1px; }
+  nav.onglets button svg { width: 20px; height: 20px; stroke-width: 1.5; transition: transform .35s cubic-bezier(.3,.7,.2,1); }
+  nav.onglets button.actif {
+    flex-grow: 1.8; color: var(--accent); font-weight: 600; font-size: 10.5px; background: var(--accent-doux);
+  }
+  nav.onglets button.actif svg { transform: scale(1.15); }
 
   .barre-mois { display: flex; align-items: center; justify-content: space-between; margin: 8px 0 20px; }
   .barre-mois h2 { font-size: 22px; font-weight: 600; margin: 0; letter-spacing: -.02em; text-transform: capitalize; }
@@ -225,6 +230,34 @@
   .credit .entete { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
   .credit .entete h4 { margin: 0; font-size: 16px; font-weight: 500; }
   .credit .entete b { font-size: 18px; font-weight: 600; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+  /* Compte joint : séparation entre les entrées et les sorties */
+  .separateur { height: 7px; background: rgba(39,50,46,.035); border-top: 1px solid var(--trait); border-bottom: 1px solid var(--trait); }
+
+  /* Appui long sur le titre du mois */
+  [data-appui-long] { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; transition: opacity .2s; }
+  [data-appui-long].appui { opacity: .35; transition: opacity 3s linear; }
+
+  /* Impôts : bouton du récapitulatif, tout à droite */
+  .puce.recap { margin-left: auto; display: grid; place-items: center; width: 40px; padding: 0; color: var(--accent); }
+  .puce.recap svg { width: 18px; height: 18px; }
+
+  /* Petites fenêtres de récapitulatif */
+  .recap { display: grid; }
+  .recap-ligne {
+    display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 11px 0;
+    border: 0; border-top: 1px solid var(--trait); background: none; text-align: left; width: 100%;
+  }
+  .recap-ligne:first-child { border-top: 0; }
+  .recap-ligne span { flex: 1; }
+  .recap-ligne small { display: block; color: var(--discret); font-size: 11.5px; margin-top: 1px; }
+  .recap-ligne b { font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .recap-ligne.sous { padding-left: 12px; font-size: 14px; }
+  .recap-ligne.sous b { font-weight: 500; }
+  .recap-titre { font-size: 11px; text-transform: uppercase; letter-spacing: .07em; color: var(--discret); font-weight: 500; padding: 12px 0 2px; border-top: 1px solid var(--trait); }
+  .recap .lien { justify-self: start; padding-left: 12px; font-size: 14px; }
+  .recap-ligne.total { border-top: 1px solid var(--bord); margin-top: 4px; }
+  .recap-ligne.total b { font-size: 17px; }
+
   /* Graphique des dépenses */
   .tuile.ouvre span::after { content: " ›"; color: var(--accent); }
   .graph-tete { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
@@ -327,7 +360,7 @@
     .boutons .danger { width: 100%; order: 3; text-align: center; padding-left: 16px; }
   }
   @keyframes monte { from { transform: translateY(40px); opacity: .4; } to { transform: none; opacity: 1; } }
-  @media (prefers-reduced-motion: reduce) { dialog[open] { animation: none; } nav.onglets button { transition: none; } }
+  @media (prefers-reduced-motion: reduce) { dialog[open] { animation: none; } nav.onglets button, nav.onglets button svg { transition: none; } }
 </style>
 </head>
 <body>
@@ -635,8 +668,14 @@ const ONGLETS = [['mois', 'Mois'], ['charges', 'Charges fixes'], ['credits', 'Cr
 
 function rendre() {
   if (!d) return;
-  document.getElementById('onglets').innerHTML = ONGLETS.map(([k, t]) =>
-    `<button data-action="onglet" data-k="${k}" class="${k === onglet ? 'actif' : ''}">${icone(k)}<span>${t}</span></button>`).join('');
+  // La barre n'est construite qu'une fois : on change seulement l'onglet actif, pour que l'animation se voie.
+  const nav = document.getElementById('onglets');
+  if (nav.children.length !== ONGLETS.length) {
+    nav.innerHTML = ONGLETS.map(([k, t]) =>
+      `<button data-action="onglet" data-k="${k}" class="${k === onglet ? 'actif' : ''}">${icone(k)}<span>${t}</span></button>`).join('');
+  } else {
+    [...nav.children].forEach(b => b.classList.toggle('actif', b.dataset.k === onglet));
+  }
   const vues = { mois: vueMois, charges: vueCharges, credits: vueCredits, epargne: vueEpargne, impots: vueImpots };
   document.getElementById('vue').innerHTML = vues[onglet]();
 }
@@ -672,7 +711,7 @@ function vueMois() {
   const premier = d.moisAvecDonnees[0] || courant;
   const barre = `<div class="barre-mois">
     <button class="rond" data-action="mois" data-m="${ajouterMois(m, -1)}" ${m <= premier ? 'disabled' : ''} aria-label="Mois précédent">${icone('gauche', 2.4)}</button>
-    <h2>${nomMois(m)}</h2>
+    <h2 data-appui-long title="Appui long : graphique des dépenses">${nomMois(m)}</h2>
     <button class="rond" data-action="mois" data-m="${ajouterMois(m, 1)}" ${moisEntre(courant, m) >= 12 ? 'disabled' : ''} aria-label="Mois suivant">${icone('droite', 2.4)}</button>
   </div>`;
   if (!d.lignes.length) return barre + '<p class="vide">Rien pour ce mois : l’appli n’existait pas encore.</p>';
@@ -692,17 +731,19 @@ function vueMois() {
         <span class="coche">${icone('coche', 3)}</span><span class="qui">${esc(p)}</span><b>${eur(v.virement)}</b></button>`;
     }).join('')}
   </div>`;
+  const provisions = totalProvisions(m);
   const tuiles = `<div class="tuiles">
-    <button class="tuile ouvre" data-action="graphique"><span>Reste à prélever</span><b>${eur(c.joint.resteAPrelever)}</b></button>
-    <div class="tuile"><span>Reste en fin de mois</span><b class="${c.joint.fin < 0 ? 'negatif' : ''}">${eur(c.joint.fin)}</b></div>
+    <button class="tuile ouvre" data-action="solde"><span>Solde sur compte</span><b>${eur(r2(c.joint.resteAPrelever + provisions))}</b></button>
+    <button class="tuile ${ferme ? '' : 'ouvre'}" data-action="epargne"${ferme ? ' disabled' : ''}><span>Reste en fin de mois</span><b class="${c.joint.fin < 0 ? 'negatif' : ''}">${eur(c.joint.fin)}</b></button>
   </div>`;
 
   // Compte joint : virements, rentrées, puis charges dans l'ordre des prélèvements
-  const joint = avecVirement.map(p => ligneHtml(Object.assign({}, c.pers[p].ligne, { type: 'Rentrée' }),
+  const duJoint = d.lignes.filter(l => l.compte === 'Joint' && l.type !== 'Virement').map(avecOrdre).sort(rentreesDabord);
+  const plus = avecVirement.map(p => ligneHtml(Object.assign({}, c.pers[p].ligne, { type: 'Rentrée' }),
     { pointer: true, verrou: !!ferme, nom: 'Virement de ' + p, montant: c.pers[p].virement }))
-    .concat(d.lignes.filter(l => l.compte === 'Joint' && l.type !== 'Virement').map(avecOrdre).sort(rentreesDabord)
-      .map(l => ligneHtml(l, { pointer: true, verrou: !!ferme })));
-  let blocs = bloc('Compte joint', joint.join(''), 'pointage');
+    .concat(duJoint.filter(l => l.type === 'Rentrée').map(l => ligneHtml(l, { pointer: true, verrou: !!ferme })));
+  const moins = duJoint.filter(l => l.type !== 'Rentrée').map(l => ligneHtml(l, { pointer: true, verrou: !!ferme }));
+  let blocs = bloc('Compte joint', plus.join('') + (plus.length && moins.length ? '<div class="separateur" role="separator"></div>' : '') + moins.join(''), 'pointage');
 
   // Comptes perso : seulement ce qui est payé depuis ce compte (ni salaire, ni virement)
   d.personnes.forEach(p => {
@@ -713,7 +754,7 @@ function vueMois() {
 }
 
 function vueCharges() {
-  const actives = d.charges.filter(c => c.active), arretees = d.charges.filter(c => !c.active);
+  const actives = d.charges.filter(c => c.active);
   // Salaires en haut, dans une bulle par personne (toucher = modifier)
   const salaires = `<div class="tuiles">${d.personnes.map(p => {
     const s = actives.filter(c => c.compte === p && c.type === 'Rentrée');
@@ -726,9 +767,13 @@ function vueCharges() {
     return bloc(nomCompte(compte), liste.map(c => ligneHtml(c, { action: 'charge', jour: compte === 'Joint', recurrence: true })).join('')
       + `<button class="ajouter" data-action="ajouter-charge" data-compte="${esc(compte)}">+ Ajouter</button>`);
   }).join('');
-  const fin = arretees.length ? bloc('Arrêtées', arretees.sort(parJour)
-    .map(c => ligneHtml(c, { action: 'charge', inactive: true })).join('')) : '';
-  return salaires + blocs + fin;
+  // Les charges arrêtées ne sont plus affichées (elles restent dans le Sheet).
+  const provisions = bloc('Provisions à mettre de côté', (d.provisions || []).map(pv => `<div class="ligne">
+      <button class="corps" data-action="provision" data-id="${pv.id}">
+        <span class="nom">${esc(pv.nom)}<small>${pv.fin ? 'payée en ' + nomMois(pv.fin) : ''}</small></span>
+        <span class="montant">${eur(pv.mensuel)} / mois</span></button></div>`).join('')
+    + `<button class="ajouter" data-action="provision">+ Ajouter</button>`);
+  return salaires + blocs + provisions;
 }
 
 function vueCredits() {
@@ -775,7 +820,8 @@ function vueImpots() {
   const annees = [...new Set(d.impots.map(i => i.annee).concat(d.fraisKm.map(k => k.annee))
     .concat([Number(d.moisCourant.slice(0, 4)), anneeImpots]).filter(Boolean))].sort();
   const puces = `<div class="annees">${annees.map(a => `<button class="puce ${a === anneeImpots ? 'actif' : ''}" data-action="annee" data-a="${a}">${a}</button>`).join('')}
-    <button class="puce" data-action="annee-plus" aria-label="Année suivante">+</button></div>`;
+    <button class="puce" data-action="annee-plus" aria-label="Année suivante">+</button>
+    <button class="puce recap" data-action="recap-impots" aria-label="Récapitulatif pour la déclaration">${icone('coche', 2.2)}</button></div>`;
   const lignes = d.impots.filter(i => i.annee === anneeImpots);
   const enfants = [...new Set(d.enfants.concat(lignes.map(i => i.pour).filter(Boolean)))];
   const blocs = enfants.map(enfant => {
@@ -819,7 +865,7 @@ function ouvrir(def) {
       <button type="button" class="bouton" data-action="f-annuler">${esc(def.libelleAnnuler || 'Annuler')}</button>
       <button type="submit" class="bouton principal">${esc(def.libelleValider || 'Enregistrer')}</button>
     </div>`;
-  fenetre.showModal();
+  if (!fenetre.open) fenetre.showModal();
   const premier = formulaire.querySelector('input:not([type="checkbox"]), select');
   if (premier && !matchMedia('(pointer: coarse)').matches) premier.focus();
 }
@@ -883,6 +929,7 @@ formulaire.addEventListener('submit', e => {
       if (!valeurs[c.k] && c.obligatoire) return erreur(`« ${c.label} » est à remplir.`);
     }
   }
+  if (def.verifier) { const pb = def.verifier(valeurs); if (pb) return erreur(pb); }
   fenetre.close();
   def.valider(valeurs);
 });
@@ -994,6 +1041,127 @@ function fenetreKm(k) {
   });
 }
 
+// ====== Provisions ======
+
+/** Montant mis de côté à la fin du mois donné : par mois × nombre de mois depuis le début (jusqu'au mois du paiement). */
+function provisionCumulee(pv, mois) {
+  if (!pv.mensuel || !pv.debut || mois < pv.debut || (pv.fin && mois > pv.fin)) return 0;
+  return r2(pv.mensuel * (moisEntre(pv.debut, mois) + 1));
+}
+const totalProvisions = mois => r2((d.provisions || []).reduce((s, pv) => s + provisionCumulee(pv, mois), 0));
+
+function fenetreProvision(pv) {
+  ouvrir({
+    titre: pv ? pv.nom : 'Nouvelle provision',
+    texte: 'Une dépense payée plus tard (ex. l’eau en fin d’année) : tu mets de côté chaque mois, et ce qui est mis de côté s’ajoute au solde à garder sur le compte joint.',
+    champs: [
+      { k: 'nom', label: 'Nom', valeur: pv ? pv.nom : '', obligatoire: true },
+      { k: 'mensuel', label: 'À mettre de côté par mois (€)', type: 'montant', valeur: pv ? pv.mensuel : null, obligatoire: true },
+      { k: 'debut', label: 'À partir de', type: 'mois', valeur: pv ? pv.debut : d.mois, obligatoire: true },
+      { k: 'fin', label: 'Payée en (mois)', type: 'mois', valeur: pv ? pv.fin : d.mois.slice(0, 4) + '-12' },
+      { k: 'note', label: 'Note', valeur: pv ? pv.note : '' }
+    ],
+    verifier: v => v.fin && v.fin < v.debut ? 'Le mois du paiement doit être après le début.' : '',
+    supprimer: pv ? () => { if (confirm('Supprimer la provision « ' + pv.nom + ' » ?')) effacer('Provisions', pv.id); } : null,
+    valider: v => sauver('Provisions', Object.assign({}, pv || {}, v))
+  });
+}
+
+/** Petite fenêtre d'information (pas de saisie). */
+function ouvrirInfo(titre, html, actions) {
+  fenetreCourante = { champs: [], valider: () => {} };
+  formulaire.innerHTML = `<h3>${esc(titre)}</h3>${html}
+    <div class="boutons">${actions || ''}<button type="button" class="bouton principal" data-action="f-annuler">Fermer</button></div>`;
+  if (!fenetre.open) fenetre.showModal();
+}
+
+/** Solde sur compte = reste à prélever du mois + provisions mises de côté. */
+function ouvrirSolde() {
+  const c = calculerMois(d.lignes, d.personnes, d.arrondi);
+  const liste = (d.provisions || []).map(pv => ({ pv, cumul: provisionCumulee(pv, d.mois) })).filter(x => x.cumul > 0);
+  const total = r2(c.joint.resteAPrelever + totalProvisions(d.mois));
+  ouvrirInfo('Solde sur compte · ' + nomMois(d.mois), `
+    <div class="recap">
+      <div class="recap-ligne"><span>Reste à prélever ce mois</span><b>${eur(c.joint.resteAPrelever)}</b></div>
+      <div class="recap-titre">Provisions</div>
+      ${liste.length ? liste.map(x => `<button type="button" class="recap-ligne sous" data-action="provision" data-id="${x.pv.id}">
+        <span>${esc(x.pv.nom)}<small>${eur(x.pv.mensuel)} / mois depuis ${nomMois(x.pv.debut)}</small></span><b>${eur(x.cumul)}</b></button>`).join('')
+        : '<div class="recap-ligne sous"><span>Aucune provision en cours</span></div>'}
+      <button type="button" class="lien" data-action="provision">+ Ajouter une provision</button>
+      <div class="recap-ligne total"><span>Solde à avoir sur le compte</span><b>${eur(total)}</b></div>
+    </div>`);
+}
+
+/** Reste en fin de mois : on peut l'augmenter (virements plus gros, à parts égales), jamais sous le montant calculé. */
+function fenetreEpargne() {
+  const c = calculerMois(d.lignes, d.personnes, d.arrondi);
+  const qui = d.personnes.filter(p => c.pers[p].ligne);
+  if (!qui.length) return;
+  const ecart = qui.reduce((s, p) => s + (c.pers[p].virement - c.pers[p].auto), 0);
+  const minimum = r2(c.joint.fin - ecart);
+  ouvrir({
+    titre: 'Épargne sur le compte joint',
+    texte: 'Ce qui reste sur le compte joint à la fin de ' + nomMois(d.mois) + '. Pour l’augmenter, les virements de '
+      + qui.join(' et ') + ' augmentent d’autant, à parts égales. Minimum : ' + eur(minimum) + ' (montant calculé).',
+    champs: [{ k: 'cible', label: 'Reste en fin de mois (€)', type: 'montant', valeur: c.joint.fin, obligatoire: true }],
+    verifier: v => v.cible < minimum - 0.004 ? 'Pas en dessous de ' + eur(minimum) + '.' : '',
+    libelleValider: 'Valider',
+    valider: v => {
+      const ajout = Math.round((v.cible - minimum) * 100);          // en centimes
+      qui.forEach((p, i) => {
+        const part = Math.floor(ajout / qui.length) + (i < ajout % qui.length ? 1 : 0);
+        const ligne = d.lignes.find(l => l.id === c.pers[p].ligne.id);
+        ligne.montant = ajout ? r2(c.pers[p].auto + part / 100) : null;   // 0 = retour au calcul automatique
+        sauver('Lignes', ligne);
+      });
+      rendre();
+    }
+  });
+}
+
+function ouvrirRecapImpots() {
+  const lignes = d.impots.filter(i => i.annee === anneeImpots);
+  const enfants = [...new Set(d.enfants.concat(lignes.map(i => i.pour).filter(Boolean)))];
+  const km = d.fraisKm.filter(k => k.annee === anneeImpots);
+  const personnes = [...new Set(d.personnes.concat(km.map(k => k.personne).filter(Boolean)))];
+  const nb = n => n.toLocaleString('fr-FR');
+  ouvrirInfo('Déclaration ' + anneeImpots, `<div class="recap">
+    ${enfants.map(e => {
+      const siens = lignes.filter(i => i.pour === e);
+      const rubriques = [...new Set(siens.map(i => i.rubrique))];
+      return `<div class="recap-ligne"><span>Somme ${esc(e)}${rubriques.length ? `<small>${rubriques.map(r =>
+        esc(r) + ' ' + eur(somme(siens.filter(i => i.rubrique === r)))).join(' · ')}</small>` : ''}</span><b>${eur(somme(siens))}</b></div>`;
+    }).join('')}
+    ${personnes.map(p => {
+      const total = km.filter(k => k.personne === p).reduce((s, k) => s + (k.kmJour || 0) * (k.jours || 0), 0);
+      const incomplet = km.some(k => k.personne === p && k.jours == null);
+      return `<div class="recap-ligne"><span>Frais réels ${esc(p)}<small>${incomplet ? 'jours travaillés à compléter' : 'kilomètres de l’année'}</small></span><b>${nb(total)} km</b></div>`;
+    }).join('')}
+  </div>`);
+}
+
+// ====== Appui long (3 s) sur le titre du mois : graphique ======
+
+let appui = null;
+function finAppui() {
+  if (!appui) return;
+  clearTimeout(appui.t);
+  appui.el.classList.remove('appui');
+  appui = null;
+}
+document.addEventListener('pointerdown', e => {
+  const el = e.target.closest('[data-appui-long]');
+  if (!el) return;
+  finAppui();
+  el.classList.add('appui');
+  appui = { el, x: e.clientX, y: e.clientY, t: setTimeout(() => { finAppui(); ouvrirGraphique(); }, 3000) };
+});
+['pointerup', 'pointercancel'].forEach(t => document.addEventListener(t, finAppui));
+document.addEventListener('pointermove', e => {
+  if (appui && Math.hypot(e.clientX - appui.x, e.clientY - appui.y) > 12) finAppui();
+});
+document.addEventListener('contextmenu', e => { if (e.target.closest('[data-appui-long]')) e.preventDefault(); });
+
 // ====== Graphique des dépenses réelles ======
 
 /** Dépenses d'un mois : toutes les charges − les rentrées communes (CAF). */
@@ -1098,6 +1266,10 @@ document.addEventListener('click', e => {
     }
     case 'cloturer': proposerCloture(d.mois); break;
     case 'graphique': ouvrirGraphique(); break;
+    case 'solde': ouvrirSolde(); break;
+    case 'epargne': fenetreEpargne(); break;
+    case 'provision': fenetreProvision(id ? (d.provisions || []).find(x => x.id === id) : null); break;
+    case 'recap-impots': ouvrirRecapImpots(); break;
     case 'rouvrir':
       if (confirm('Rouvrir ' + nomMois(d.mois) + ' ? Il redeviendra modifiable.')) serveur('rouvrir', { mois: d.mois });
       break;
