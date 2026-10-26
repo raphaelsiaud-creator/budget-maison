@@ -667,7 +667,7 @@ const ICONES = {
 };
 const icone = (n, style) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${style || 1.8}" stroke-linecap="round" stroke-linejoin="round">${ICONES[n]}</svg>`;
 
-const ONGLETS = [['mois', 'Mois'], ['charges', 'Charges fixes'], ['credits', 'Crédits'], ['epargne', 'Épargne'], ['impots', 'Impôts']];
+const ONGLETS = [['mois', 'Mois'], ['charges', 'Charges'], ['credits', 'Crédits'], ['epargne', 'Épargne'], ['impots', 'Impôts']];
 
 function rendre() {
   if (!d) return;
@@ -773,7 +773,7 @@ function vueCharges() {
   // Les charges arrêtées ne sont plus affichées (elles restent dans le Sheet).
   const provisions = bloc('Provisions à mettre de côté', (d.provisions || []).map(pv => `<div class="ligne">
       <button class="corps" data-action="provision" data-id="${pv.id}">
-        <span class="nom">${esc(pv.nom)}<small>${pv.fin ? 'payée en ' + nomMois(pv.fin) : ''}</small></span>
+        <span class="nom">${esc(pv.nom)}<small>${esc(echeanceProvision(pv))}</small></span>
         <span class="montant">${eur(pv.mensuel)} / mois</span></button></div>`).join('')
     + `<button class="ajouter" data-action="provision">+ Ajouter</button>`);
   return salaires + blocs + provisions;
@@ -1046,27 +1046,48 @@ function fenetreKm(k) {
 
 // ====== Provisions ======
 
-/** Montant mis de côté à la fin du mois donné : par mois × nombre de mois depuis le début (jusqu'au mois du paiement). */
+/**
+ * Montant mis de côté à la fin du mois donné : par mois × nombre de mois depuis le début.
+ * Provision reliée à une charge : quand on coche cette charge, la facture est payée → le cumul retombe à 0
+ * et repart le mois suivant. Sans charge reliée : le cumul s'arrête après le mois « Payée en ».
+ */
 function provisionCumulee(pv, mois) {
-  if (!pv.mensuel || !pv.debut || mois < pv.debut || (pv.fin && mois > pv.fin)) return 0;
-  return r2(pv.mensuel * (moisEntre(pv.debut, mois) + 1));
+  if (!pv.mensuel || !pv.debut || mois < pv.debut) return 0;
+  let depart = pv.debut;
+  if (pv.charge) {
+    const payes = paiementsCoches(pv.charge).map(p => p.mois).filter(m => m >= pv.debut && m <= mois);
+    if (payes.length) {
+      const dernier = payes[payes.length - 1];
+      if (dernier === mois) return 0;
+      depart = ajouterMois(dernier, 1);
+    }
+  } else if (pv.fin && mois > pv.fin) return 0;
+  return r2(pv.mensuel * (moisEntre(depart, mois) + 1));
 }
+const nomCharge = id => (d.charges.find(x => x.id === id) || {}).intitule || '?';
+const echeanceProvision = pv => pv.charge
+  ? (pv.nom === nomCharge(pv.charge) ? 'reliée à sa charge' : 'payée par ' + nomCharge(pv.charge))
+  : pv.fin ? 'payée en ' + nomMois(pv.fin) : '';
 const totalProvisions = mois => r2((d.provisions || []).reduce((s, pv) => s + provisionCumulee(pv, mois), 0));
 
 function fenetreProvision(pv) {
   ouvrir({
     titre: pv ? pv.nom : 'Nouvelle provision',
-    texte: 'Une dépense payée plus tard (ex. l’eau en fin d’année) : tu mets de côté chaque mois, et ce qui est mis de côté s’ajoute au solde à garder sur le compte joint.',
+    texte: 'Une dépense payée plus tard (ex. l’eau en fin d’année) : tu mets de côté chaque mois, et ce qui est mis de côté s’ajoute au solde à garder sur le compte joint. Si tu choisis la charge qui la paie, le cumul retombe à zéro quand tu la coches dans l’onglet Mois.',
     champs: [
-      { k: 'nom', label: 'Nom', valeur: pv ? pv.nom : '', obligatoire: true },
+      { k: 'charge', label: 'Payée par', type: 'choix', valeur: pv ? pv.charge : '', options: [['', 'Aucune charge (mois de paiement ci-dessous)']].concat(
+        d.charges.filter(x => x.type === 'Charge' && (x.active || (pv && x.id === pv.charge)))
+          .sort((a, b) => String(a.intitule).localeCompare(b.intitule)).map(x => [x.id, x.intitule])) },
+      { k: 'nom', label: 'Nom (vide = nom de la charge)', valeur: pv ? pv.nom : '' },
       { k: 'mensuel', label: 'À mettre de côté par mois (€)', type: 'montant', valeur: pv ? pv.mensuel : null, obligatoire: true },
       { k: 'debut', label: 'À partir de', type: 'mois', valeur: pv ? pv.debut : d.mois, obligatoire: true },
-      { k: 'fin', label: 'Payée en (mois)', type: 'mois', valeur: pv ? pv.fin : d.mois.slice(0, 4) + '-12' },
+      { k: 'fin', label: 'Payée en (seulement sans charge)', type: 'mois', valeur: pv ? pv.fin : d.mois.slice(0, 4) + '-12' },
       { k: 'note', label: 'Note', valeur: pv ? pv.note : '' }
     ],
-    verifier: v => v.fin && v.fin < v.debut ? 'Le mois du paiement doit être après le début.' : '',
+    verifier: v => !v.nom && !v.charge ? '« Nom » est à remplir.'
+      : !v.charge && v.fin && v.fin < v.debut ? 'Le mois du paiement doit être après le début.' : '',
     supprimer: pv ? () => { if (confirm('Supprimer la provision « ' + pv.nom + ' » ?')) effacer('Provisions', pv.id); } : null,
-    valider: v => sauver('Provisions', Object.assign({}, pv || {}, v))
+    valider: v => sauver('Provisions', Object.assign({}, pv || {}, v, { nom: v.nom || nomCharge(v.charge) }))
   });
 }
 
@@ -1088,7 +1109,7 @@ function ouvrirSolde() {
       <div class="recap-ligne"><span>Reste à prélever ce mois</span><b>${eur(c.joint.resteAPrelever)}</b></div>
       <div class="recap-titre">Provisions</div>
       ${liste.length ? liste.map(x => `<button type="button" class="recap-ligne sous" data-action="provision" data-id="${x.pv.id}">
-        <span>${esc(x.pv.nom)}<small>${eur(x.pv.mensuel)} / mois depuis ${nomMois(x.pv.debut)}</small></span><b>${eur(x.cumul)}</b></button>`).join('')
+        <span>${esc(x.pv.nom)}<small>${eur(x.pv.mensuel)} / mois${x.pv.charge ? ' · ' + esc(echeanceProvision(x.pv)) : ''}</small></span><b>${eur(x.cumul)}</b></button>`).join('')
         : '<div class="recap-ligne sous"><span>Aucune provision en cours</span></div>'}
       <button type="button" class="lien" data-action="provision">+ Ajouter une provision</button>
       <div class="recap-ligne total"><span>Solde à avoir sur le compte</span><b>${eur(total)}</b></div>
